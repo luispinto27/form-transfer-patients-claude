@@ -10,7 +10,7 @@ import { isPlatformBrowser } from '@angular/common';
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly STORAGE_KEY = 'amb247_session';
+  private readonly STORAGE_KEY = 'amb247_sessionn';
 
   constructor(@Inject(PLATFORM_ID) private platformId: object) {}
 
