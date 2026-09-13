@@ -10,7 +10,7 @@ describe('GenerarPdf', () => {
     service = TestBed.inject(GenerarPdf);
   });
 
-  it('should be created', () => {
+  it('should be createdd', () => {
     expect(service).toBeTruthy();
   });
 });
