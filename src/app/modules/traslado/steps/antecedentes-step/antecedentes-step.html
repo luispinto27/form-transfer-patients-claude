@@ -4,43 +4,94 @@
   <p class="step-sub">Marca los antecedentes relevantes y registra el diagnóstico principal.</p>
 </header>
 
-<div [formGroup]="group">
+<div [formGroup]="group" class="card card--accent">
+  <div class="card__body">
 
-  <div class="checkbox-grid">
+    <div class="checkbox-grid">
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="acv">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">ACV</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="alergia">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Alergia</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="artritis">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Artritis</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="asma">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Asma</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="cancer">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Cáncer</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="cardiacos">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Cardíacos</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="dislipidemia">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Dislipidemia</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="epoc">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">EPOC</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="fallaRenal">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Falla renal</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="diabetes">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Diabetes</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="ginecoObstetricos">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Gineco-obstétricos</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="hipertension">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Hipertensión</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="quirurgicos">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Quirúrgicos</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="psiquiatricos">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Psiquiátricos</span>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" class="checkbox-input" formControlName="otros">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-label">Otros</span>
+      </label>
+    </div>
 
-    <mat-checkbox formControlName="acv">ACV</mat-checkbox>
-    <mat-checkbox formControlName="alergia">Alergia</mat-checkbox>
-    <mat-checkbox formControlName="artritis">Artritis</mat-checkbox>
-    <mat-checkbox formControlName="asma">Asma</mat-checkbox>
-    <mat-checkbox formControlName="cancer">Cáncer</mat-checkbox>
-
-    <mat-checkbox formControlName="cardiacos">Cardíacos</mat-checkbox>
-    <mat-checkbox formControlName="dislipidemia">Dislipidemia</mat-checkbox>
-    <mat-checkbox formControlName="epoc">EPOC</mat-checkbox>
-    <mat-checkbox formControlName="fallaRenal">Falla renal</mat-checkbox>
-    <mat-checkbox formControlName="diabetes">Diabetes</mat-checkbox>
-
-    <mat-checkbox formControlName="ginecoObstetricos">
-      Gineco-obstétricos
-    </mat-checkbox>
-    <mat-checkbox formControlName="hipertension">Hipertensión</mat-checkbox>
-    <mat-checkbox formControlName="quirurgicos">Quirúrgicos</mat-checkbox>
-    <mat-checkbox formControlName="psiquiatricos">Psiquiátricos</mat-checkbox>
-    <mat-checkbox formControlName="otros">Otros</mat-checkbox>
+    <div class="field full-width">
+      <label>DX #1 (Diagnóstico principal) <span class="required">*</span></label>
+      <textarea class="field-input" rows="3" formControlName="dxPrincipal"></textarea>
+      <span class="field-error" *ngIf="group.get('dxPrincipal')?.invalid && group.get('dxPrincipal')?.touched">
+        El diagnóstico principal es requerido
+      </span>
+    </div>
 
   </div>
-
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>DX #1 (Diagnóstico principal)</mat-label>
-    <textarea
-      matInput
-      rows="3"
-      formControlName="dxPrincipal">
-    </textarea>
-    <mat-error *ngIf="group.get('dxPrincipal')?.hasError('required')">
-      El diagnóstico principal es requerido
-    </mat-error>
-  </mat-form-field>
-
 </div>
-

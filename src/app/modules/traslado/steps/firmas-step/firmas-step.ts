@@ -2,12 +2,11 @@ import { Component, ViewChildren, QueryList, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FirmaPad } from '../../components/firma-pad/firma-pad';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
 
 @Component({
   selector: 'app-firmas-step',
   standalone: true,
-  imports: [CommonModule, FirmaPad, ReactiveFormsModule, MatFormFieldModule],
+  imports: [CommonModule, FirmaPad, ReactiveFormsModule],
   templateUrl: './firmas-step.html',
   styleUrls: ['./firmas-step.css']
 })

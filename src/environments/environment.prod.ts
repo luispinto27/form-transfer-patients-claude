@@ -5,7 +5,5 @@ export const environment = {
   // so the browser call is same-origin and avoids CORS — mirrors proxy.conf.json in dev.
   servicioApiUrl: '/index.php',
   servicioUsuario: 'historiaClinica',
-  servicioPassword: '4536905-8a3deb23',
-  loginUsuario: 'admin',
-  loginPassword: '123456'
+  servicioPassword: '4536905-8a3deb23'
 };

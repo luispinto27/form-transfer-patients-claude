@@ -1,18 +1,14 @@
 import { Component, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { switchMap, timeout } from 'rxjs';
-import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { ServicioService, ServicioResponse } from '../../../../services/servicio.service';
 import { PdfService, GeneratePdfResponse } from '../../../../services/generar-pdf';
-import { AuthService } from '../../../../services/auth.service';
 import { FIELDS_TO_TOGGLE_VALIDATORS, FIELD_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
 
-import { MatStepperModule } from '@angular/material/stepper';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { Icon } from '../../../../shared/ds/icon/icon';
 
 // Step components
 import { TrasladoStep } from '../../steps/traslado-step/traslado-step';
@@ -32,10 +28,8 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatStepperModule,
-    MatButtonModule,
-    MatIconModule,
     MatDialogModule,
+    Icon,
     // Steps
     TrasladoStep,
     PacienteStep,
@@ -52,29 +46,32 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
 
   export class Registro {
 
-    @ViewChild('stepper')
-    stepper: any;
+    @ViewChild('main', { read: ElementRef })
+    mainRef?: ElementRef;
 
-    @ViewChild('stepper', { read: ElementRef })
-    stepperRef?: ElementRef;
+    @ViewChild('railNav', { read: ElementRef })
+    railNavRef?: ElementRef;
 
     @ViewChild(FirmasStep)
     firmasStep?: FirmasStep;
 
+    readonly sectionLabels = [
+      'Traslado', 'Paciente', 'Antecedentes', 'Signos vitales',
+      'Examen físico', 'Gastos', 'Conducta', 'Firmas'
+    ];
+    currentIndex = 0;
+
     form: FormGroup;
-    isMobile = false;
     isSearching = false;
     searchLocked = false;
     searchError: string | null = null;
 
     constructor(
       private readonly fb: FormBuilder,
-      private readonly breakpointObserver: BreakpointObserver,
       private readonly servicioService: ServicioService,
       private readonly pdfService: PdfService,
       private readonly dialog: MatDialog,
-      private readonly auth: AuthService,
-      private readonly router: Router,
+      private readonly route: ActivatedRoute,
       private readonly cdr: ChangeDetectorRef
     ) {
 
@@ -169,15 +166,13 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         this.searchLocked = false;
       });
 
-      // Vertical stepper on phones and portrait tablets (not enough width for
-      // 8 horizontal steps); horizontal on landscape tablets and desktop.
-      this.breakpointObserver
-        .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
-        .subscribe(result => {
-          this.isMobile = result.matches;
-        });
       this.agregarSignoVital();
       this.agregarGasto();
+
+      // Si el formulario se abre con ?autorizacion=NUMERO en la URL (enlace
+      // directo desde el sistema de despacho), precarga el campo y dispara
+      // la consulta automáticamente, sin esperar a que alguien pulse "Buscar".
+      this.autoBuscarDesdeUrl();
 
 
 
@@ -532,11 +527,10 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
     private resetForm(): void {
       const today = new Date().toISOString().split('T')[0];
 
-      // Fully reset the stepper FIRST. Unlike setting `selectedIndex = 0`, this
-      // clears every step's "interacted/completed" flag, so the steps go back to
-      // plain numbers instead of showing the pencil/done icons ("processed").
-      // It also resets each step's control, so we re-seed defaults afterwards.
-      this.stepper?.reset();
+      // Section "done" state is derived live from each control's validity
+      // (see sectionDone()), so jumping back to the first section and
+      // resetting the form is enough to show every section as pending again.
+      this.currentIndex = 0;
 
       this.form.reset({
         traslado: {
@@ -568,7 +562,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       this.searchError = null;
     }
 
-    /** Control that backs each step, in stepper order. */
+    /** Control that backs each step/section, in rail order. */
     getStepControl(index: number): AbstractControl | null {
       switch (index) {
         case 0: return this.trasladoGroup;
@@ -583,14 +577,33 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       }
     }
 
-    logout(): void {
-      this.auth.logout();
-      this.router.navigate(['/login']);
+    /** Whether the section at `index` currently passes its own validators. */
+    sectionDone(index: number): boolean {
+      return this.getStepControl(index)?.valid ?? false;
+    }
+
+    get completedCount(): number {
+      return this.sectionLabels.reduce((n, _, i) => n + (this.sectionDone(i) ? 1 : 0), 0);
+    }
+
+    /** Lee ?autorizacion=NUMERO de la URL y, si viene, dispara la consulta de una vez. */
+    private autoBuscarDesdeUrl(): void {
+      const autorizacion = this.route.snapshot.queryParamMap.get('autorizacion')?.trim();
+      if (!autorizacion) {
+        return;
+      }
+      this.trasladoGroup.patchValue({ autorizacionNumero: autorizacion });
+      this.onBuscarAutorizacion(autorizacion);
+    }
+
+    /** Sidebar navigation: free jump, same as the design's SectionNav. */
+    goTo(index: number): void {
+      this.currentIndex = index;
+      this.scrollToTop();
     }
 
     nextStep(): void {
-      const index = this.stepper?.selectedIndex ?? 0;
-      const control = this.getStepControl(index);
+      const control = this.getStepControl(this.currentIndex);
 
       if (control) {
         control.markAllAsTouched();
@@ -601,13 +614,17 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         }
       }
 
-      this.stepper?.next();
-      this.scrollToTop();
+      if (this.currentIndex < this.sectionLabels.length - 1) {
+        this.currentIndex++;
+        this.scrollToTop();
+      }
     }
 
     previousStep(): void {
-      this.stepper?.previous();
-      this.scrollToTop();
+      if (this.currentIndex > 0) {
+        this.currentIndex--;
+        this.scrollToTop();
+      }
     }
 
     private scrollToTop(): void {
@@ -617,22 +634,23 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         if (typeof window !== 'undefined') {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+        this.mainRef?.nativeElement?.scrollTo?.({ top: 0, behavior: 'smooth' });
         this.scrollActiveStepIntoView();
       }, 120);
     }
 
-    /** Keep the active step visible in the horizontally-scrollable rail (mobile). */
+    /** Keep the active section visible in the horizontally-scrollable rail (mobile). */
     private scrollActiveStepIntoView(): void {
-      const header = this.stepperRef?.nativeElement?.querySelector(
-        '.mat-horizontal-stepper-header[aria-selected="true"]'
+      const active = this.railNavRef?.nativeElement?.querySelector(
+        '.rail__nav-btn.is-active'
       ) as HTMLElement | null;
-      header?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
 
     private scrollToFirstError(): void {
       setTimeout(() => {
-        const firstInvalid = this.stepperRef?.nativeElement?.querySelector(
-          '.ng-invalid.ng-touched:not(form):not(mat-stepper):not([formgroupname]), .error-message'
+        const firstInvalid = this.mainRef?.nativeElement?.querySelector(
+          '.ng-invalid.ng-touched:not(form):not([formgroupname]), .field-error'
         ) as HTMLElement | null;
         firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         if (firstInvalid && typeof firstInvalid.focus === 'function') {

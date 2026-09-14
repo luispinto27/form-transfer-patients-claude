@@ -10,13 +10,25 @@ html {
   height: 100%;
   @include mat.theme((
     color: (
-      // Clinical deep-teal primary (evokes EMS / medical, calmer than default azure)
-      primary: mat.$cyan-palette,
+      primary: mat.$orange-palette,
       tertiary: mat.$blue-palette,
     ),
-    typography: Roboto,
+    typography: Poppins,
     density: 0,
   ));
+
+  // Angular Material sólo sigue en uso para MatDialogModule (diálogos de
+  // éxito/validación); se pisan sus tokens de sistema con la marca
+  // navy/naranja de Ambulancias Contacto 724 en vez de dejar la paleta
+  // generada automáticamente por mat.theme().
+  --mat-sys-primary: #EA8420;
+  --mat-sys-on-primary: #FFFFFF;
+  --mat-sys-surface: #FFFFFF;
+  --mat-sys-on-surface: #11304E;
+  --mat-sys-on-surface-variant: #6F7C8A;
+  --mat-sys-surface-container: #F7F8F9;
+  --mat-sys-surface-container-low: #FFFFFF;
+  --mat-sys-outline-variant: #D8DDE2;
 }
 
 body {

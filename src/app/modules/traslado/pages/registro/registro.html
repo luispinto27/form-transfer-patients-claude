@@ -1,126 +1,111 @@
-<div class="header-container">
-  <img src="logo-ambulancias-247.ico" alt="Logo" class="logo">
-  <div class="main-title">Registro de Traslados</div>
-  <div class="subtitle">Ambulancias Contacto 247 S.A.S</div>
-</div>
+<header class="app-header">
+  <img src="logo-contacto724.png" alt="Ambulancias Contacto 724" class="app-header__logo">
+  <div class="app-header__brand">
+    <div class="app-header__title">Ambulancias Contacto 724</div>
+    <div class="app-header__lema">Comprometidos con la vida de nuestros pacientes</div>
+  </div>
+  <div class="app-header__actions">
+    <span class="badge badge--navy" *ngIf="trasladoGroup.get('autorizacionNumero')?.value as auth">{{ auth }}</span>
+  </div>
+</header>
 
-<div class="form-shell">
-<div class="form-toolbar">
-  <button mat-stroked-button type="button" class="logout-btn" (click)="logout()">
-    <mat-icon>logout</mat-icon>
-    Cerrar sesión
-  </button>
-</div>
-<mat-stepper
-  #stepper
-  [linear]="true"
-  labelPosition="bottom"
-  orientation="horizontal">
+<div class="shell">
 
-  <mat-step label="Traslado" [stepControl]="trasladoGroup">
-    <app-traslado-step
-      [group]="trasladoGroup"
-      [isSearching]="isSearching"
-      [searchLocked]="searchLocked"
-      [searchError]="searchError"
-      (buscarAutorizacion)="onBuscarAutorizacion($event)">
-    </app-traslado-step>
+  <aside class="rail">
+    <div class="rail__top">
+      <div class="rail__eyebrow">Formulario de traslado</div>
+      <div class="rail__progress">
+        <div class="rail__progress-label">
+          <span>Secciones completas</span>
+          <span class="rail__progress-value">{{ completedCount }}/8</span>
+        </div>
+        <div class="rail__progress-track">
+          <div class="rail__progress-fill" [style.width.%]="(completedCount / sectionLabels.length) * 100"></div>
+        </div>
+      </div>
+    </div>
 
-    <div class="actions">
-      <button mat-raised-button color="primary" (click)="nextStep()">
+    <nav class="rail__nav" #railNav>
+      <button
+        *ngFor="let label of sectionLabels; let i = index"
+        type="button"
+        class="rail__nav-btn"
+        [class.is-active]="i === currentIndex"
+        [attr.aria-current]="i === currentIndex ? 'step' : null"
+        (click)="goTo(i)">
+        <span class="rail__nav-bubble">
+          <ng-container *ngIf="i !== currentIndex && sectionDone(i); else numberTpl">
+            <app-icon name="check" [size]="13"></app-icon>
+          </ng-container>
+          <ng-template #numberTpl>{{ i + 1 }}</ng-template>
+        </span>
+        {{ label }}
+      </button>
+    </nav>
+
+    <div class="rail__foot">Los datos se guardan en el dispositivo. No se comparten.</div>
+  </aside>
+
+  <main class="main" #main>
+    <div class="main__inner">
+
+      <ng-container [ngSwitch]="currentIndex">
+        <app-traslado-step
+          *ngSwitchCase="0"
+          [group]="trasladoGroup"
+          [isSearching]="isSearching"
+          [searchLocked]="searchLocked"
+          [searchError]="searchError"
+          (buscarAutorizacion)="onBuscarAutorizacion($event)">
+        </app-traslado-step>
+
+        <app-paciente-step *ngSwitchCase="1" [group]="pacienteGroup"></app-paciente-step>
+
+        <app-antecedentes-step *ngSwitchCase="2" [group]="antecedentesGroup"></app-antecedentes-step>
+
+        <app-signos-step
+          *ngSwitchCase="3"
+          [signos]="signosArray"
+          [agregar]="agregarSignoVital.bind(this)"
+          [eliminar]="eliminarSignoVital.bind(this)">
+        </app-signos-step>
+
+        <app-examen-step *ngSwitchCase="4" [group]="examenGroup"></app-examen-step>
+
+        <app-gasto-step
+          *ngSwitchCase="5"
+          [gastos]="gastoArray"
+          [agregar]="agregarGasto.bind(this)"
+          [eliminar]="eliminarGasto.bind(this)">
+        </app-gasto-step>
+
+        <app-conducta-step *ngSwitchCase="6" [group]="conductaGroup"></app-conducta-step>
+
+        <app-firmas-step *ngSwitchCase="7" [group]="firmasGroup"></app-firmas-step>
+      </ng-container>
+
+    </div>
+
+    <div class="action-bar">
+      <button type="button" class="btn btn--outline btn--lg" [disabled]="currentIndex === 0" (click)="previousStep()">
+        <app-icon name="arrowLeft" [size]="18"></app-icon>
+        Atrás
+      </button>
+      <button
+        *ngIf="currentIndex < sectionLabels.length - 1"
+        type="button"
+        class="btn btn--primary btn--lg action-bar__next"
+        (click)="nextStep()">
         Siguiente
       </button>
-    </div>
-  </mat-step>
-
-  <mat-step label="Paciente" [stepControl]="pacienteGroup">
-      <app-paciente-step *ngIf="pacienteGroup" [group]="pacienteGroup">
-  </app-paciente-step>
-
-    <div class="actions">
-      <button mat-button (click)="previousStep()">Atrás</button>
-      <button mat-raised-button color="primary" (click)="nextStep()">
-        Siguiente
+      <button
+        *ngIf="currentIndex === sectionLabels.length - 1"
+        type="button"
+        class="btn btn--primary btn--lg action-bar__next"
+        (click)="finalizar()">
+        Finalizar
       </button>
     </div>
-  </mat-step>
+  </main>
 
-  <mat-step label="Antecedentes" [stepControl]="antecedentesGroup">
-    <app-antecedentes-step [group]="antecedentesGroup"></app-antecedentes-step>
-
-    <div class="actions">
-      <button mat-button (click)="previousStep()">Atrás</button>
-      <button mat-raised-button color="primary" (click)="nextStep()">
-        Siguiente
-      </button>
-    </div>
-  </mat-step>
-
-  <mat-step label="Signos" [stepControl]="signosArray">
-    <app-signos-step
-      [signos]="signosArray"
-      [agregar]="agregarSignoVital.bind(this)"
-      [eliminar]="eliminarSignoVital.bind(this)">
-    </app-signos-step>
-
-    <div class="actions">
-      <button mat-button (click)="previousStep()">Atrás</button>
-      <button mat-raised-button color="primary" (click)="nextStep()">
-        Siguiente
-      </button>
-    </div>
-  </mat-step>
-
-  <mat-step label="Examen" [stepControl]="examenGroup">
-    <app-examen-step [group]="examenGroup"></app-examen-step>
-
-    <div class="actions">
-      <button mat-button (click)="previousStep()">Atrás</button>
-      <button mat-raised-button color="primary" (click)="nextStep()">
-        Siguiente
-      </button>
-    </div>
-  </mat-step>
-
-  <mat-step label="Gastos" [stepControl]="gastoArray">
-    <app-gasto-step
-      [gastos]="gastoArray"
-      [agregar]="agregarGasto.bind(this)"
-      [eliminar]="eliminarGasto.bind(this)">
-    </app-gasto-step>
-
-    <div class="actions">
-      <button mat-button (click)="previousStep()">Atrás</button>
-      <button mat-raised-button color="primary" (click)="nextStep()">
-        Siguiente
-      </button>
-    </div>
-  </mat-step>
-
-  <mat-step label="Conducta" [stepControl]="conductaGroup">
-    <app-conducta-step [group]="conductaGroup"></app-conducta-step>
-
-    <div class="actions">
-      <button mat-button (click)="previousStep()">Atrás</button>
-      <button mat-raised-button color="primary" (click)="nextStep()">
-        Siguiente
-      </button>
-    </div>
-  </mat-step>
-
-  <mat-step label="Firmas" [stepControl]="firmasGroup">
-
-    <ng-container *ngIf="form.get('firmas') as g">
-      <app-firmas-step [group]="firmasGroup"></app-firmas-step>
-    </ng-container>
-
-    <div class="actions">
-      <button mat-button (click)="previousStep()">Atrás</button>
-      <button mat-raised-button color="accent" (click)="finalizar()"> Finalizar </button>
-    </div>
-
-  </mat-step>
-
-
-</mat-stepper>
 </div>
