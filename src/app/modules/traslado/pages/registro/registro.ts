@@ -628,23 +628,34 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
     }
 
     private scrollToTop(): void {
+      // Instant, not 'smooth': smooth scrolling depends on animation frames
+      // that some automated/headless browser contexts never paint, silently
+      // leaving the page scrolled mid-section. An instant jump always lands.
       setTimeout(() => {
-        // Move the whole page back to the top so every step change lands the
-        // user at the header/first field instead of mid-scroll.
         if (typeof window !== 'undefined') {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo(0, 0);
         }
-        this.mainRef?.nativeElement?.scrollTo?.({ top: 0, behavior: 'smooth' });
+        this.mainRef?.nativeElement?.scrollTo?.(0, 0);
         this.scrollActiveStepIntoView();
-      }, 120);
+      });
     }
 
-    /** Keep the active section visible in the horizontally-scrollable rail (mobile). */
+    /**
+     * Keep the active section visible in the horizontally-scrollable rail
+     * (mobile only). Scrolls the nav strip's own scrollLeft directly instead
+     * of calling `Element.scrollIntoView()` on the button — that API also
+     * repositions the nearest scrollable ancestor along the vertical axis,
+     * which on desktop meant it fought scrollToTop() and re-scrolled the
+     * whole page back down right after it had been reset to 0.
+     */
     private scrollActiveStepIntoView(): void {
-      const active = this.railNavRef?.nativeElement?.querySelector(
-        '.rail__nav-btn.is-active'
-      ) as HTMLElement | null;
-      active?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      const nav = this.railNavRef?.nativeElement as HTMLElement | undefined;
+      const active = nav?.querySelector('.rail__nav-btn.is-active') as HTMLElement | null;
+      if (!nav || !active || nav.scrollWidth <= nav.clientWidth) {
+        return;
+      }
+      const target = active.offsetLeft - (nav.clientWidth - active.clientWidth) / 2;
+      nav.scrollTo(Math.max(0, target), 0);
     }
 
     private scrollToFirstError(): void {
