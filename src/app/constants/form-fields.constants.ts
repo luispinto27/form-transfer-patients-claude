@@ -30,6 +30,7 @@ export const FIELDS_TO_TOGGLE_VALIDATORS = [
 export const FIELD_LABELS: { [key: string]: string } = {
   // Traslado
   'traslado.fecha': 'Fecha del traslado',
+  'traslado.codigo': 'Código del servicio',
   'traslado.entidad': 'Nombre de la entidad',
   'traslado.autorizadoPor': 'Autorizado por',
   'traslado.autorizacionNumero': 'Número de autorización',
@@ -80,8 +81,15 @@ export const FIELD_LABELS: { [key: string]: string } = {
   'firmas.entidadReceptora': 'Firma de la entidad receptora'
 };
 
+/**
+ * Validation is cleared across the whole form while `traslado.trasladoFallido`
+ * is checked and restored from this map when it is unchecked, so every control
+ * that is built with validators must appear here — otherwise it loses them for
+ * good the first time the checkbox is toggled.
+ */
 export const FORM_FIELD_VALIDATORS: { [key: string]: any } = {
   'traslado.fecha': [Validators.required],
+  'traslado.codigo': [Validators.required],
   'traslado.entidad': [Validators.required],
   'traslado.autorizadoPor': [Validators.required],
   'traslado.autorizacionNumero': [Validators.required],

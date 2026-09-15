@@ -141,7 +141,7 @@
       </div>
 
       <div class="field full-width">
-        <label>DX #2 <span class="required">*</span></label>
+        <label>DX #2 <span class="required" *ngIf="grupo.get('dxSecundario') | esObligatorio">*</span></label>
         <textarea class="field-input" rows="2" formControlName="dxSecundario"></textarea>
         <span class="field-error" *ngIf="grupo.get('dxSecundario')?.invalid && grupo.get('dxSecundario')?.touched">
           El diagnóstico secundario es requerido

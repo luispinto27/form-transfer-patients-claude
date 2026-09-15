@@ -24,7 +24,7 @@
 
     <div class="gasto-grid">
       <div class="field desc">
-        <label>Descripción <span class="required">*</span></label>
+        <label>Descripción <span class="required" *ngIf="fila.get('descripcion') | esObligatorio">*</span></label>
         <input class="field-input" formControlName="descripcion">
         <span class="field-error" *ngIf="fila.get('descripcion')?.hasError('required') && fila.get('descripcion')?.touched">
           La descripción es requerida
@@ -35,7 +35,7 @@
       </div>
 
       <div class="field cant">
-        <label>Cantidad <span class="required">*</span></label>
+        <label>Cantidad <span class="required" *ngIf="fila.get('cantidad') | esObligatorio">*</span></label>
         <input class="field-input" type="number" formControlName="cantidad">
         <span class="field-error" *ngIf="fila.get('cantidad')?.hasError('required') && fila.get('cantidad')?.touched">
           La cantidad es requerida

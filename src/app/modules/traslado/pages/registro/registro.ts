@@ -6,7 +6,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ServicioService, ServicioResponse } from '../../../../services/servicio.service';
 import { PdfService, GeneratePdfResponse } from '../../../../services/generar-pdf';
 import { TrasladoDto } from '../../../../models/traslado.dto';
-import { FIELDS_TO_TOGGLE_VALIDATORS, FIELD_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
+import { FIELD_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Icon } from '../../../../shared/ds/icon/icon';
@@ -183,33 +183,23 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       });
     }
 
-    private updateValidatorsBasedOnTrasladoFallido(trasladoFallido: boolean): void {
-      FIELDS_TO_TOGGLE_VALIDATORS.forEach(fieldPath => {
-        const control = this.form.get(fieldPath);
-        if (control) {
-          if (trasladoFallido) {
-            control.clearValidators();
-          } else {
-            this.applyOriginalValidators(fieldPath, control);
-          }
-          control.updateValueAndValidity({ emitEvent: false });
-        }
-      });
+    /**
+     * Sections that identify the service and the patient are required whatever
+     * happened on the road, so they keep their validators even on a failed
+     * transfer. Everything else is clinical record of a trip that did not
+     * happen, and is exempt.
+     */
+    private readonly ALWAYS_REQUIRED_SECTIONS = ['traslado', 'paciente'];
 
-      // Toggle validators for signos vitales array
+    /**
+     * Ticking "Traslado Fallido" drops the validators of every section except
+     * those above; unticking it restores them all from the constants.
+     */
+    private updateValidatorsBasedOnTrasladoFallido(trasladoFallido: boolean): void {
+      this.toggleGroupValidators(this.form, '', trasladoFallido);
+
       this.signosArray.controls.forEach(control => {
         if (control instanceof FormGroup) {
-          Object.keys(control.controls).forEach(key => {
-            const field = control.get(key);
-            if (field) {
-              if (trasladoFallido) {
-                field.clearValidators();
-              } else {
-                this.applyOriginalSignosValidators(key, field);
-              }
-              field.updateValueAndValidity({ emitEvent: false });
-            }
-          });
           if (trasladoFallido) {
             this.lockSignosNumberFields(control);
           } else {
@@ -218,26 +208,70 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         }
       });
 
-      // Toggle validators for registroGasto array
       this.gastoArray.controls.forEach(control => {
         if (control instanceof FormGroup) {
-          Object.keys(control.controls).forEach(key => {
-            const field = control.get(key);
-            if (field) {
-              if (trasladoFallido) {
-                field.clearValidators();
-              } else {
-                this.applyOriginalGastoValidators(key, field);
-              }
-              field.updateValueAndValidity({ emitEvent: false });
-            }
-          });
           if (trasladoFallido) {
             this.lockGastoNumberFields(control);
           } else {
             this.unlockGastoNumberFields(control);
           }
         }
+      });
+    }
+
+    /** Walks the whole tree so new sections are covered without a field list. */
+    private toggleGroupValidators(group: FormGroup, basePath: string, clear: boolean): void {
+      Object.keys(group.controls).forEach(key => {
+        const control = group.get(key);
+        if (!control) {
+          return;
+        }
+
+        const path = basePath ? `${basePath}.${key}` : key;
+
+        if (control instanceof FormGroup) {
+          this.toggleGroupValidators(control, path, clear);
+          return;
+        }
+
+        if (control instanceof FormArray) {
+          control.controls.forEach(row => {
+            if (row instanceof FormGroup) {
+              this.toggleRowValidators(row, key, clear);
+            }
+          });
+          return;
+        }
+
+        if (clear && !this.isAlwaysRequired(path)) {
+          control.clearValidators();
+        } else {
+          this.applyOriginalValidators(path, control);
+        }
+        control.updateValueAndValidity({ emitEvent: false });
+      });
+    }
+
+    private isAlwaysRequired(path: string): boolean {
+      return this.ALWAYS_REQUIRED_SECTIONS.some(section => path.startsWith(`${section}.`));
+    }
+
+    /** Rows of `signos` / `registroGasto`, keyed by field name rather than path. */
+    private toggleRowValidators(row: FormGroup, arrayKey: string, clear: boolean): void {
+      const validators = arrayKey === 'signos' ? SIGNOS_FIELD_VALIDATORS : GASTO_FIELD_VALIDATORS;
+
+      Object.keys(row.controls).forEach(key => {
+        const field = row.get(key);
+        if (!field) {
+          return;
+        }
+
+        if (clear) {
+          field.clearValidators();
+        } else if (validators[key]) {
+          field.setValidators(validators[key]);
+        }
+        field.updateValueAndValidity({ emitEvent: false });
       });
     }
 
@@ -279,20 +313,6 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
 
     private applyOriginalValidators(fieldPath: string, control: any): void {
       const validators = FORM_FIELD_VALIDATORS[fieldPath];
-      if (validators) {
-        control.setValidators(validators);
-      }
-    }
-
-    private applyOriginalSignosValidators(fieldName: string, control: any): void {
-      const validators = SIGNOS_FIELD_VALIDATORS[fieldName];
-      if (validators) {
-        control.setValidators(validators);
-      }
-    }
-
-    private applyOriginalGastoValidators(fieldName: string, control: any): void {
-      const validators = GASTO_FIELD_VALIDATORS[fieldName];
       if (validators) {
         control.setValidators(validators);
       }
@@ -347,7 +367,10 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
     agregarSignoVital(): void {
       const group = this.crearSignoVital();
       this.signosArray.push(group);
+      // A row added while the transfer is marked failed must arrive unvalidated,
+      // otherwise `hora`, `ta` and `dxSecundario` stay required and block submit.
       if (this.form.get('traslado.trasladoFallido')?.value) {
+        this.toggleRowValidators(group, 'signos', true);
         this.lockSignosNumberFields(group);
       }
     }
@@ -369,6 +392,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       const group = this.crearGasto();
       this.gastoArray.push(group);
       if (this.form.get('traslado.trasladoFallido')?.value) {
+        this.toggleRowValidators(group, 'registroGasto', true);
         this.lockGastoNumberFields(group);
       }
     }

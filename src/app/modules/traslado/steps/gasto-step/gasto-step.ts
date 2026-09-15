@@ -1,12 +1,14 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { EsObligatorio } from '../../../../shared/pipes/es-obligatorio';
 import { Icon } from '../../../../shared/ds/icon/icon';
 
 @Component({
   selector: 'app-gasto-step',
   standalone: true,
   imports: [
+    EsObligatorio,
     CommonModule,
     ReactiveFormsModule,
     Icon

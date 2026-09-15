@@ -86,7 +86,7 @@
     </div>
 
     <div class="field full-width">
-      <label>DX #1 (Diagnóstico principal) <span class="required">*</span></label>
+      <label>DX #1 (Diagnóstico principal) <span class="required" *ngIf="group.get('dxPrincipal') | esObligatorio">*</span></label>
       <textarea class="field-input" rows="3" formControlName="dxPrincipal"></textarea>
       <span class="field-error" *ngIf="group.get('dxPrincipal')?.invalid && group.get('dxPrincipal')?.touched">
         El diagnóstico principal es requerido

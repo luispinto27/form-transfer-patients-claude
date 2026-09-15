@@ -8,7 +8,7 @@
   <div class="card__body">
 
     <div class="field full-width">
-      <label>Conducta <span class="required">*</span></label>
+      <label>Conducta <span class="required" *ngIf="group.get('conducta') | esObligatorio">*</span></label>
       <textarea class="field-input" formControlName="conducta"></textarea>
       <span class="field-error" *ngIf="group.get('conducta')?.invalid && group.get('conducta')?.touched">
         La conducta es requerida

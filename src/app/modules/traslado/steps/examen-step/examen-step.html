@@ -73,7 +73,7 @@
 
     <!-- Descripción -->
     <div class="field full-width">
-      <label>Descripción del examen físico <span class="required">*</span></label>
+      <label>Descripción del examen físico <span class="required" *ngIf="group.get('descripcion') | esObligatorio">*</span></label>
       <textarea class="field-input" rows="6" placeholder="Descripción clínica del examen físico" formControlName="descripcion"></textarea>
       <span class="field-error" *ngIf="group.get('descripcion')?.invalid && group.get('descripcion')?.touched">
         La descripción del examen físico es requerida

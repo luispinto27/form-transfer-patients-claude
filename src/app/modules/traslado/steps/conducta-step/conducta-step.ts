@@ -1,11 +1,13 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { EsObligatorio } from '../../../../shared/pipes/es-obligatorio';
 
 @Component({
   selector: 'app-conducta-step',
   standalone: true,
   imports: [
+    EsObligatorio,
     CommonModule,
     ReactiveFormsModule
   ],
