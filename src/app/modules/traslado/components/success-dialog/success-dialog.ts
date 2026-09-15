@@ -41,7 +41,7 @@ export interface SuccessDialogData {
           <app-icon class="result-icon success-icon" name="checkCircle" [size]="48"></app-icon>
           <h2 class="result-title">¡Todo listo!</h2>
           <p class="result-subtitle">
-            {{ data.message || 'La información del traslado ha sido almacenada correctamente.' }}
+            {{'La información del traslado ha sido almacenada correctamente.' }}
           </p>
           <div class="success-details">
             <p>Tu servicio se guardó con éxito y ya puedes continuar con el siguiente paso.</p>

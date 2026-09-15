@@ -5,6 +5,7 @@ import { switchMap, timeout } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { ServicioService, ServicioResponse } from '../../../../services/servicio.service';
 import { PdfService, GeneratePdfResponse } from '../../../../services/generar-pdf';
+import { TrasladoDto } from '../../../../models/traslado.dto';
 import { FIELDS_TO_TOGGLE_VALIDATORS, FIELD_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -389,15 +390,20 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         return;
       }
 
-      const dto = {
-        traslado: this.form.value.traslado,
-        paciente: this.form.value.paciente,
-        antecedentes: this.form.value.antecedentes,
-        signos: this.form.value.signos,
-        examen: this.form.value.examen,
-        gastos: this.form.value.registroGasto,
-        conducta: this.form.value.conducta,
-        firmas: this.form.value.firmas
+      // getRawValue(), not value: on a failed transfer the numeric signos/gasto
+      // fields are set to 0 and then disabled, and `form.value` omits disabled
+      // controls — which would drop those keys from the payload and the PDF.
+      const raw = this.form.getRawValue();
+
+      const dto: TrasladoDto = {
+        traslado: raw.traslado,
+        paciente: raw.paciente,
+        antecedentes: raw.antecedentes,
+        signos: raw.signos,
+        examen: raw.examen,
+        gastos: raw.registroGasto,
+        conducta: raw.conducta,
+        firmas: raw.firmas
       };
 
       console.log('DTO a enviar al backend:', dto);
