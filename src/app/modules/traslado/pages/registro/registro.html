@@ -94,12 +94,16 @@
       <button
         *ngIf="currentIndex < sectionLabels.length - 1"
         type="button"
-        class="btn btn--primary btn--lg action-bar__next"
+        class="btn btn--lg action-bar__next"
+        [class.btn--primary]="!trasladoFallido"
+        [class.btn--outline]="trasladoFallido"
         (click)="nextStep()">
         Siguiente
       </button>
+      <!-- On a failed transfer the clinical sections are optional, so the record
+           can be closed from any step instead of only from the last one. -->
       <button
-        *ngIf="currentIndex === sectionLabels.length - 1"
+        *ngIf="currentIndex === sectionLabels.length - 1 || trasladoFallido"
         type="button"
         class="btn btn--primary btn--lg action-bar__next"
         (click)="finalizar()">

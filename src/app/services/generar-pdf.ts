@@ -80,6 +80,46 @@ const COLORS = {
 
 const LOGO_URL = '/logo-contacto724.png';
 
+/**
+ * Fields that make a row of `signos` worth printing. `hora` is left out on
+ * purpose: the form pre-fills it with '01:00', so it would keep every
+ * untouched row alive.
+ */
+const SIGNOS_CAMPOS_CON_DATO: ReadonlyArray<keyof SignoVitalDto> =
+  ['ta', 'fc', 'fr', 'temperatura', 'glicemia', 'spo2', 'glasgow', 'dxSecundario'];
+
+const GASTO_CAMPOS_CON_DATO: ReadonlyArray<keyof GastoDto> = ['descripcion', 'cantidad'];
+
+/**
+ * Both arrays reach the PDF with at least one row because the endpoint refuses
+ * an empty one, so on a failed transfer the starter row arrives full of empty
+ * strings and the zeros the form writes into the disabled numeric fields.
+ * Printing it would put "FC 0 · SpO₂ 0" in a clinical record, which reads as a
+ * measurement that was taken. These rows are dropped so the section prints its
+ * "no se registró" notice instead.
+ *
+ * On a completed transfer every row is validated before it gets here, so they
+ * all carry data and all of them are kept.
+ */
+function filasConDatos<T>(rows: T[] | undefined, campos: ReadonlyArray<keyof T>): T[] {
+  return (Array.isArray(rows) ? rows : []).filter(row =>
+    campos.some(campo => tieneDato(row?.[campo]))
+  );
+}
+
+function tieneDato(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return false;
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  if (typeof value === 'string') {
+    return value.trim().length > 0;
+  }
+  return true;
+}
+
 /** Formats pdfmake can embed directly; anything else is re-encoded to PNG. */
 const EMBEDDABLE_IMAGE = /^data:image\/(png|jpeg|jpg);base64,/i;
 
@@ -276,7 +316,7 @@ export class PdfService {
         ...this.signosSection(dto.signos),
         ...this.examenSection(dto.examen),
         ...this.gastosSection(dto.gastos),
-        ...this.conductaSection(dto.conducta),
+        ...this.conductaSection(dto.conducta, !!traslado?.trasladoFallido),
         ...this.firmasSection(firmas)
       ]
     };
@@ -410,7 +450,7 @@ export class PdfService {
   // --- 4. Signos vitales -----------------------------------------------------
 
   private signosSection(signos: SignoVitalDto[]): Content[] {
-    const rows = Array.isArray(signos) ? signos : [];
+    const rows = filasConDatos(signos, SIGNOS_CAMPOS_CON_DATO);
 
     if (rows.length === 0) {
       return [this.sectionTitle('4. Signos vitales'), this.emptyNotice('No se registraron signos vitales.')];
@@ -475,7 +515,7 @@ export class PdfService {
   // --- 6. Gastos -------------------------------------------------------------
 
   private gastosSection(gastos: GastoDto[]): Content[] {
-    const rows = Array.isArray(gastos) ? gastos : [];
+    const rows = filasConDatos(gastos, GASTO_CAMPOS_CON_DATO);
 
     if (rows.length === 0) {
       return [this.sectionTitle('6. Registro de gastos'), this.emptyNotice('No se registraron gastos.')];
@@ -523,16 +563,30 @@ export class PdfService {
 
   // --- 7. Conducta -----------------------------------------------------------
 
-  private conductaSection(conducta: ConductaSectionDto): Content[] {
+  private conductaSection(conducta: ConductaSectionDto, trasladoFallido: boolean): Content[] {
     return [
       this.sectionTitle('7. Conducta'),
       this.fieldGrid([
         ['Hora de inicio de espera', this.text(conducta?.horaInicioEspera)],
         ['Hora de fin de espera', this.text(conducta?.horaFinEspera)],
-        ['Estado del paciente', this.text(conducta?.estadoEntrega ? 'Vivo' : 'Muerto')]
+        ['Estado del paciente', this.estadoPaciente(conducta, trasladoFallido)]
       ]),
       this.longText('Conducta', conducta?.conducta)
     ];
+  }
+
+  /**
+   * The form asks for this as a single checkbox: ticked is "Con vida",
+   * unticked is "Fallecido". On a failed transfer nobody reached the patient
+   * and nobody ticks
+   * it, so the default would print the gravest possible statement about a
+   * patient no one assessed. A crew that did tick it is still believed.
+   */
+  private estadoPaciente(conducta: ConductaSectionDto, trasladoFallido: boolean): string {
+    if (trasladoFallido && !conducta?.estadoEntrega) {
+      return 'No aplica - traslado fallido';
+    }
+    return conducta?.estadoEntrega ? 'Con vida' : 'Fallecido';
   }
 
   // --- 8. Firmas -------------------------------------------------------------

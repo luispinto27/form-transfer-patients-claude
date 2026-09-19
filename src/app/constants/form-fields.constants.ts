@@ -82,6 +82,18 @@ export const FIELD_LABELS: { [key: string]: string } = {
 };
 
 /**
+ * Messages for the rules that live on a group instead of on a single field,
+ * keyed by `<grupo>.<clave de error>`. `getFormErrors()` reads them when it
+ * walks the tree; a group error with no entry here is not reported.
+ */
+export const GROUP_ERROR_LABELS: { [key: string]: string } = {
+  'traslado.rangoHorarioInvalido':
+    'La hora de finalización del traslado no puede ser anterior a la hora de inicio',
+  'conducta.rangoHorarioInvalido':
+    'La hora de fin de espera no puede ser anterior a la hora de inicio de espera'
+};
+
+/**
  * Validation is cleared across the whole form while `traslado.trasladoFallido`
  * is checked and restored from this map when it is unchecked, so every control
  * that is built with validators must appear here — otherwise it loses them for

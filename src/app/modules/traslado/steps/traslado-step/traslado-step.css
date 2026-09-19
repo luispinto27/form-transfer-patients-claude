@@ -19,6 +19,10 @@
   margin-bottom: var(--space-4);
 }
 
+.traslado-fallido-aviso {
+  margin-top: var(--space-3);
+}
+
 @media (max-width: 600px) {
   .autorizacion-row {
     flex-direction: column;

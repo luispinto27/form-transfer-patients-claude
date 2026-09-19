@@ -136,6 +136,85 @@ describe('PdfService', () => {
     expect(atob(result.fileBase64).startsWith('%PDF')).toBe(true);
   }, 30000);
 
+  /** Every `text` that the document definition puts on the page, flattened. */
+  function textosDelDocumento(dto: TrasladoDto): string[] {
+    const definition = (service as any).buildDocDefinition(dto, null, dto.firmas);
+    const textos: string[] = [];
+
+    const recorrer = (node: any): void => {
+      if (Array.isArray(node)) {
+        node.forEach(recorrer);
+        return;
+      }
+      if (!node || typeof node !== 'object') {
+        return;
+      }
+      if (typeof node.text === 'string') {
+        textos.push(node.text);
+      }
+      [node.stack, node.columns, node.table?.body].forEach(recorrer);
+    };
+
+    recorrer(definition.content);
+    return textos;
+  }
+
+  /**
+   * The endpoint refuses an empty `signos`/`gastos`, so a failed transfer sends
+   * its untouched starter row. Printing it would show "FC 0 · SpO₂ 0" as if the
+   * measurement had been taken.
+   */
+  it('reports a blank starter row as "no se registró" instead of printing zeros', () => {
+    const dto = buildDto({
+      traslado: { ...buildDto().traslado, trasladoFallido: true },
+      signos: [
+        { hora: '01:00', ta: '', fc: 0, fr: 0, temperatura: 0, glicemia: 0, glasgow: 0, spo2: 0, dxSecundario: '' }
+      ],
+      gastos: [{ descripcion: '', cantidad: 0 }]
+    });
+
+    const textos = textosDelDocumento(dto);
+
+    expect(textos).toContain('No se registraron signos vitales.');
+    expect(textos).toContain('No se registraron gastos.');
+    expect(textos).not.toContain('Glasgow');
+  });
+
+  it('does not declare a patient dead when the transfer failed', () => {
+    const dto = buildDto({
+      traslado: { ...buildDto().traslado, trasladoFallido: true },
+      conducta: { ...buildDto().conducta, estadoEntrega: false }
+    });
+
+    const textos = textosDelDocumento(dto);
+
+    expect(textos).not.toContain('Fallecido');
+    expect(textos.some(texto => texto.startsWith('No aplica'))).toBe(true);
+  });
+
+  it('still reports the patient state the crew did record on a failed transfer', () => {
+    const dto = buildDto({
+      traslado: { ...buildDto().traslado, trasladoFallido: true },
+      conducta: { ...buildDto().conducta, estadoEntrega: true }
+    });
+
+    expect(textosDelDocumento(dto)).toContain('Con vida');
+  });
+
+  it('keeps reporting "Fallecido" on a completed transfer', () => {
+    const dto = buildDto({ conducta: { ...buildDto().conducta, estadoEntrega: false } });
+
+    expect(textosDelDocumento(dto)).toContain('Fallecido');
+  });
+
+  it('prints the rows that do carry data', () => {
+    const textos = textosDelDocumento(buildDto());
+
+    expect(textos).not.toContain('No se registraron signos vitales.');
+    expect(textos).toContain('130/85');
+    expect(textos).toContain('Oxígeno medicinal');
+  });
+
   it('still generates a PDF when optional sections are empty', async () => {
     const dto = buildDto({
       signos: [],

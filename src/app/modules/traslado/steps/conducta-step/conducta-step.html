@@ -66,6 +66,11 @@
     <span class="field-error hora-error" *ngIf="group.get('horaFinEspera')?.invalid && group.get('horaFinEspera')?.touched">
       La hora de finalización es requerida
     </span>
+    <!-- No `touched` guard: the selects never blur, and the error can only come
+         from a time the user just picked, so it is shown as soon as it exists. -->
+    <span class="field-error hora-error" *ngIf="group.errors?.['rangoHorarioInvalido']">
+      La hora de fin de espera no puede ser anterior a la hora de inicio de espera
+    </span>
 
     <label class="checkbox">
       <input type="checkbox" class="checkbox-input" formControlName="estadoEntrega">

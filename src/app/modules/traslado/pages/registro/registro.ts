@@ -1,12 +1,13 @@
 import { Component, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
-import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, AbstractControlOptions, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { switchMap, timeout } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { ServicioService, ServicioResponse } from '../../../../services/servicio.service';
 import { PdfService, GeneratePdfResponse } from '../../../../services/generar-pdf';
 import { TrasladoDto } from '../../../../models/traslado.dto';
-import { FIELD_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
+import { FIELD_LABELS, GROUP_ERROR_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
+import { rangoHorario } from '../../../../shared/validators/rango-horario';
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Icon } from '../../../../shared/ds/icon/icon';
@@ -93,7 +94,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
           horaFin: ['01:00', Validators.required],
           retorno: [false],
           trasladoFallido: [false]
-        }),
+        }, { validators: rangoHorario('horaInicio', 'horaFin') } as AbstractControlOptions),
 
         paciente: this.fb.group({
           nombreCompleto: ['', [Validators.required, Validators.minLength(3)]],
@@ -114,7 +115,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
           horaInicioEspera: ['01:00', Validators.required],
           horaFinEspera: ['01:00', Validators.required],
           estadoEntrega: [false],
-        }),
+        }, { validators: rangoHorario('horaInicioEspera', 'horaFinEspera') } as AbstractControlOptions),
 
         antecedentes: this.fb.group({
           acv: [false],
@@ -197,6 +198,14 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
      */
     private updateValidatorsBasedOnTrasladoFallido(trasladoFallido: boolean): void {
       this.toggleGroupValidators(this.form, '', trasladoFallido);
+
+      // toggleGroupValidators() only walks leaves, so the cross-field rule on
+      // Conducta has to be exempted by hand like the rest of that section.
+      // Traslado keeps its own: it stays required whatever happened.
+      this.conductaGroup.setValidators(
+        trasladoFallido ? [] : [rangoHorario('horaInicioEspera', 'horaFinEspera')]
+      );
+      this.conductaGroup.updateValueAndValidity({ emitEvent: false });
 
       this.signosArray.controls.forEach(control => {
         if (control instanceof FormGroup) {
@@ -350,6 +359,15 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       return this.form.get('firmas') as FormGroup;
     }
 
+    /**
+     * Drives the notice in the Traslado step and the early "Finalizar" button:
+     * with the transfer marked failed only Traslado and Paciente are required,
+     * so the user must be able to close the record without walking every step.
+     */
+    get trasladoFallido(): boolean {
+      return !!this.form.get('traslado.trasladoFallido')?.value;
+    }
+
     crearSignoVital(): FormGroup {
       return this.fb.group({
         hora: ['01:00', Validators.required],
@@ -414,21 +432,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         return;
       }
 
-      // getRawValue(), not value: on a failed transfer the numeric signos/gasto
-      // fields are set to 0 and then disabled, and `form.value` omits disabled
-      // controls — which would drop those keys from the payload and the PDF.
-      const raw = this.form.getRawValue();
-
-      const dto: TrasladoDto = {
-        traslado: raw.traslado,
-        paciente: raw.paciente,
-        antecedentes: raw.antecedentes,
-        signos: raw.signos,
-        examen: raw.examen,
-        gastos: raw.registroGasto,
-        conducta: raw.conducta,
-        firmas: raw.firmas
-      };
+      const dto = this.construirDto();
 
       console.log('DTO a enviar al backend:', dto);
 
@@ -452,8 +456,8 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       this.pdfService.generatePdf(dto).pipe(
         switchMap(pdf => {
           pdfGenerado = pdf;
-          const dtoConHistoria = { ...dto, pdfHistoria: pdf.fileBase64 };
-          return this.servicioService.guardarTraslado(dtoConHistoria);
+          const payload = { ...this.construirPayload(dto), pdfHistoria: pdf.fileBase64 };
+          return this.servicioService.guardarTraslado(payload);
         })
       ).subscribe({
         next: (guardar) => {
@@ -483,6 +487,125 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
           });
         }
       });
+    }
+
+    /**
+     * What the user actually recorded. This is what the PDF is rendered from,
+     * so a section nobody filled in stays empty here and the document prints it
+     * as "sin registro".
+     *
+     * `getRawValue()`, not `value`: on a failed transfer the numeric
+     * signos/gasto fields are set to 0 and then disabled, and `form.value`
+     * omits disabled controls — which would drop those keys entirely.
+     *
+     * `signos` and `gastos` always travel with the starter row the form is
+     * built with, even untouched: `Traslado.guardar` rejects an empty array
+     * ("El campo [signos] debe ser un arreglo con al menos un elemento").
+     */
+    construirDto(): TrasladoDto {
+      const raw = this.form.getRawValue();
+
+      return {
+        traslado: raw.traslado,
+        paciente: raw.paciente,
+        antecedentes: raw.antecedentes,
+        signos: raw.signos,
+        examen: raw.examen,
+        gastos: raw.registroGasto,
+        conducta: raw.conducta,
+        firmas: raw.firmas
+      };
+    }
+
+    /** Stands in for a free-text field the failed transfer left with nothing to say. */
+    private readonly SIN_REGISTRO = 'No aplica - traslado fallido';
+
+    /**
+     * Vitals for a row the failed transfer left untouched.
+     *
+     * `Traslado.guardar` belongs to a third party and validates shape and range
+     * on every field ("El campo [signos[0].ta] debe tener formato
+     * sistolica/diastolica"), with no exemption for `trasladoFallido`, so a
+     * blank or zeroed row cannot get through. These are ordinary adult values,
+     * mid-range for the limits the form itself enforces (fc 40-200, fr 10-50,
+     * temperatura 35-42, glicemia 40-500, spo2 80-100, glasgow 3-15).
+     *
+     * They are a placeholder for a patient nobody assessed, not a measurement.
+     * Nothing else in the app reads them: they exist only in the object handed
+     * to that endpoint, `dxSecundario` labels the row as such right beside
+     * them, and `traslado.trasladoFallido` travels in the same payload.
+     */
+    private readonly SIGNOS_SIN_VALORACION = {
+      ta: '120/80',
+      fc: 80,
+      fr: 16,
+      temperatura: 36.5,
+      glicemia: 90,
+      spo2: 98,
+      glasgow: 15
+    };
+
+    /** `cantidad` is validated as min 0.01, so a zeroed placeholder row is refused too. */
+    private readonly GASTO_SIN_REGISTRO_CANTIDAD = 1;
+
+    /**
+     * The same record, reshaped to satisfy `Traslado.guardar`.
+     *
+     * The endpoint requires every field of every section whatever
+     * `trasladoFallido` says, so the sections the user is allowed to skip
+     * cannot reach it blank. They are filled here, in the payload only —
+     * `construirDto()` and therefore the PDF keep showing those sections as
+     * "sin registro", so the printed record never presents any of this as
+     * something that was measured or spent.
+     *
+     * Signatures are the exception and stay empty: a signature is an
+     * attestation by a named person, and it can still be collected for real on
+     * a failed transfer from the Firmas step.
+     */
+    construirPayload(dto: TrasladoDto): TrasladoDto {
+      if (!dto.traslado?.trasladoFallido) {
+        return dto;
+      }
+
+      const sinValoracion = this.SIGNOS_SIN_VALORACION;
+
+      return {
+        ...dto,
+        antecedentes: { ...dto.antecedentes, dxPrincipal: this.oSinRegistro(dto.antecedentes?.dxPrincipal) },
+        signos: (dto.signos ?? []).map(signo => ({
+          ...signo,
+          ta: this.oValor(signo?.ta, sinValoracion.ta),
+          fc: this.oValor(signo?.fc, sinValoracion.fc),
+          fr: this.oValor(signo?.fr, sinValoracion.fr),
+          temperatura: this.oValor(signo?.temperatura, sinValoracion.temperatura),
+          glicemia: this.oValor(signo?.glicemia, sinValoracion.glicemia),
+          spo2: this.oValor(signo?.spo2, sinValoracion.spo2),
+          glasgow: this.oValor(signo?.glasgow, sinValoracion.glasgow),
+          dxSecundario: this.oSinRegistro(signo?.dxSecundario)
+        })),
+        examen: { ...dto.examen, descripcion: this.oSinRegistro(dto.examen?.descripcion) },
+        gastos: (dto.gastos ?? []).map(gasto => ({
+          ...gasto,
+          descripcion: this.oSinRegistro(gasto?.descripcion),
+          cantidad: this.oValor(gasto?.cantidad, this.GASTO_SIN_REGISTRO_CANTIDAD)
+        })),
+        conducta: { ...dto.conducta, conducta: this.oSinRegistro(dto.conducta?.conducta) }
+      };
+    }
+
+    private oSinRegistro(value: string | undefined): string {
+      return value?.trim() ? value : this.SIN_REGISTRO;
+    }
+
+    /** Keeps what the user typed; falls back only on a blank or zeroed field. */
+    private oValor<T extends string | number>(value: T | null | undefined, fallback: T): T {
+      if (value === null || value === undefined) {
+        return fallback;
+      }
+      if (typeof value === 'number') {
+        return value === 0 ? fallback : value;
+      }
+      return value.trim() ? value : fallback;
     }
 
     private descargarPdf(pdf: GeneratePdfResponse): void {
@@ -523,8 +646,22 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         }
       };
 
+      // Rules that compare two fields sit on the group, so they never show up
+      // in the leaf walk below and would leave the dialog empty on an invalid
+      // form. GROUP_ERROR_LABELS carries their wording.
+      const checkGroupErrors = (group: FormGroup, basePath: string) => {
+        Object.keys(group.errors ?? {}).forEach(key => {
+          const label = GROUP_ERROR_LABELS[basePath ? `${basePath}.${key}` : key];
+          if (label) {
+            errors.push(label);
+          }
+        });
+      };
+
       // Check all form controls recursively
       const checkGroup = (group: FormGroup, basePath: string = '') => {
+        checkGroupErrors(group, basePath);
+
         Object.keys(group.controls).forEach(key => {
           const control = group.get(key);
           const path = basePath ? `${basePath}.${key}` : key;

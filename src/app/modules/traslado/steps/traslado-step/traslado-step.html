@@ -142,6 +142,11 @@
     <span class="field-error hora-error" *ngIf="group.get('horaFin')?.invalid && group.get('horaFin')?.touched">
       La hora de finalización es requerida
     </span>
+    <!-- No `touched` guard: the selects never blur, and the error can only come
+         from a time the user just picked, so it is shown as soon as it exists. -->
+    <span class="field-error hora-error" *ngIf="group.errors?.['rangoHorarioInvalido']">
+      La hora de finalización no puede ser anterior a la hora de inicio
+    </span>
 
     <label class="checkbox">
       <input type="checkbox" class="checkbox-input" formControlName="retorno">
@@ -154,6 +159,18 @@
       <span class="checkbox-box"></span>
       <span class="checkbox-label">Traslado Fallido</span>
     </label>
+
+    <div class="alert alert--warning traslado-fallido-aviso" *ngIf="group.get('trasladoFallido')?.value">
+      <span class="alert__icon"><app-icon name="warning" [size]="18"></app-icon></span>
+      <div class="alert__body">
+        <div class="alert__title">Traslado marcado como fallido</div>
+        Solo debes diligenciar las secciones <strong>Traslado</strong> y <strong>Paciente</strong>.
+        Antecedentes, signos vitales, examen físico, gastos, conducta y firmas quedan opcionales:
+        puedes cerrar el registro con el botón <strong>Finalizar</strong> de la barra inferior sin
+        llenarlas. Las secciones que dejes vacías se reportarán como «sin registro» en el PDF y en
+        el envío.
+      </div>
+    </div>
 
   </div>
 </div>
