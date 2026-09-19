@@ -32,22 +32,11 @@
 
   <!-- Botones -->
   <div class="button-group">
-    <button
-      mat-stroked-button
-      color="primary"
-      type="button"
-      (click)="triggerFileInput()"
-      class="upload-btn">
-      <i class="material-icons">photo_camera</i> Subir imagen
+    <button type="button" class="btn btn--outline upload-btn" (click)="triggerFileInput()">
+      <app-icon name="save" [size]="16"></app-icon> Subir imagen
     </button>
 
-    <button
-      mat-stroked-button
-      color="warn"
-      type="button"
-      [disabled]="!firmado"
-      (click)="limpiar()"
-      class="clear-btn">
+    <button type="button" class="btn btn--outline clear-btn" [disabled]="!firmado" (click)="limpiar()">
       Limpiar
     </button>
   </div>

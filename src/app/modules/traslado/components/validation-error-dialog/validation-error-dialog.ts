@@ -1,17 +1,16 @@
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
+import { Icon } from '../../../../shared/ds/icon/icon';
 
 @Component({
   selector: 'app-validation-error-dialog',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatDialogModule, MatIconModule],
+  imports: [CommonModule, MatDialogModule, Icon],
   template: `
     <div class="content">
       <div class="header">
-        <mat-icon class="warn-icon">warning_amber</mat-icon>
+        <span class="warn-icon"><app-icon name="warning" [size]="22"></app-icon></span>
         <div class="title-block">
           <h2 class="title">Validación del Formulario</h2>
           <p class="subtitle">Por favor, completa los siguientes campos:</p>
@@ -20,20 +19,20 @@ import { MatIconModule } from '@angular/material/icon';
 
       <div class="error-list">
         <div *ngFor="let error of data.errors" class="error-item">
-          <mat-icon class="error-bullet">cancel</mat-icon>
+          <span class="error-bullet"><app-icon name="x" [size]="14"></app-icon></span>
           <span class="error-text">{{ error.startsWith('❌') ? error.slice(2) : error }}</span>
         </div>
       </div>
 
       <div class="actions">
-        <button mat-raised-button color="primary" class="primary-button" (click)="closeDialog()">Entendido</button>
+        <button type="button" class="btn btn--primary primary-button" (click)="closeDialog()">Entendido</button>
       </div>
     </div>
   `,
   styles: [`
     .header {
       display: flex;
-      gap: 12px;
+      gap: var(--space-3);
       align-items: center;
     }
 
@@ -42,37 +41,35 @@ import { MatIconModule } from '@angular/material/icon';
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
-      padding: 18px 20px;
+      gap: var(--space-4);
+      padding: var(--space-5);
       box-sizing: border-box;
+      font-family: var(--font-sans);
     }
 
     .warn-icon {
       flex: 0 0 40px;
       width: 40px;
       height: 40px;
-      font-size: 20px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #f39c12;
-      background: rgba(243,156,18,0.06);
-      border-radius: 8px;
-      padding: 4px;
+      color: var(--orange-700);
+      background: var(--orange-100);
+      border-radius: var(--radius-md);
       box-sizing: border-box;
-      margin-top: 0;
     }
 
     .title {
-      margin: 0 0 4px 0;
-      font-size: 20px;
-      font-weight: 700;
+      margin: 0 0 4px;
+      font: var(--type-h3);
+      color: var(--navy-800);
     }
 
     .subtitle {
-      margin: 0 0 8px 0;
-      color: rgba(0,0,0,0.65);
-      font-size: 14px;
+      margin: 0;
+      color: var(--text-muted);
+      font: var(--type-body);
     }
 
     .error-list {
@@ -80,41 +77,42 @@ import { MatIconModule } from '@angular/material/icon';
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 12px 8px;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-2);
       width: 100%;
-      background: rgba(0,0,0,0.02);
-      border-radius: 8px;
+      background: var(--surface-page);
+      border-radius: var(--radius-md);
       overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     .error-item {
       display: flex;
-      gap: 10px;
+      gap: var(--space-3);
       align-items: flex-start;
-      color: #2d3436;
-      font-size: 14px;
+      color: var(--navy-800);
+      font: var(--type-body);
       width: 100%;
-      padding: 6px 4px;
+      padding: var(--space-1) var(--space-1);
       box-sizing: border-box;
     }
 
-    .error-bullet { color: #d63031; }
-    .error-text { line-height: 1.4; display:block; word-break: break-word; overflow-wrap: anywhere; }
-    mat-icon.error-bullet {
-      flex: 0 0 28px;
-      height: 28px;
-      width: 28px;
-      font-size: 18px;
-      line-height: 28px;
+    .error-bullet {
+      flex: 0 0 22px;
+      height: 22px;
+      width: 22px;
+      border-radius: 50%;
+      background: var(--danger-100);
+      color: var(--danger-500);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-top: 2px;
+      margin-top: 1px;
     }
+    .error-text { line-height: 1.4; display: block; word-break: break-word; overflow-wrap: anywhere; }
 
-    .actions { display: flex; justify-content: center; padding: 12px 0 6px; }
-    .primary-button { min-width: 120px; border-radius: 999px; padding: 8px 20px; }
+    .actions { display: flex; justify-content: center; padding-top: var(--space-2); }
+    .primary-button { min-width: 120px; }
   `]
 })
 export class ValidationErrorDialog {

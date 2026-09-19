@@ -1,13 +1,13 @@
 import { Component, ViewChild, ElementRef, Input, AfterViewInit, OnDestroy, Output, EventEmitter, NgZone, ChangeDetectorRef } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Inject, PLATFORM_ID } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
+import { Icon } from '../../../../shared/ds/icon/icon';
 
 @Component({
   selector: 'app-firma-pad',
   standalone: true,
-  imports: [MatButtonModule, CommonModule],
+  imports: [CommonModule, Icon],
   templateUrl: './firma-pad.html',
   styleUrls: ['./firma-pad.css']
 })

@@ -1,495 +1,303 @@
 /* ============================================================
-   Ambulancias 247 — global styles
-   Design tokens are bound to Angular Material's own --mat-sys-*
-   theme variables so custom chrome stays in sync with the
-   Material components (buttons, inputs, stepper).
+   Ambulancias Contacto 724 — sistema de diseño global
+   Tokens de marca (navy/naranja) + clases compartidas que
+   reemplazan a Angular Material en toda la app: tarjetas, campos,
+   checkboxes, botones, badges y alertas.
    ============================================================ */
 
 :root {
-  /* Semantic colour tokens (teal clinical theme via Material) */
-  --amb-primary:            var(--mat-sys-primary);
-  --amb-on-primary:         var(--mat-sys-on-primary);
-  --amb-primary-container:  var(--mat-sys-primary-container);
-  --amb-on-primary-container: var(--mat-sys-on-primary-container);
+  /* Brand — navy */
+  --navy-900: #0B2136; --navy-800: #11304E; --navy-700: #1B4570;
+  --navy-600: #2A5C8F; --navy-300: #7E9DBC; --navy-100: #D7E2EC; --navy-050: #EDF3F8;
+  /* Brand — naranja */
+  --orange-700: #B45C0C; --orange-600: #D26F12; --orange-500: #EA8420;
+  --orange-400: #F5A04E; --orange-200: #FAD6B2; --orange-100: #FDF0E2;
+  --signal-500: #F5570A;
+  /* Neutrales */
+  --white: #FFFFFF; --gray-050: #F7F8F9; --gray-100: #E6E6E6; --gray-200: #D8DDE2;
+  --gray-300: #BCC5CE; --gray-400: #94A0AD; --gray-500: #6F7C8A; --gray-600: #4E5A66;
+  --gray-800: #2A323A; --black: #14181C;
+  /* Estados semánticos */
+  --success-500: #1E9E6A; --success-100: #E2F4EC;
+  --warning-500: #E8A21A; --warning-100: #FCF2DC;
+  --danger-500: #C8321F; --danger-100: #FAE5E2;
+  --info-500: #2A5C8F; --info-100: #E4EDF6;
 
-  --amb-surface:            var(--mat-sys-surface);
-  --amb-surface-alt:        var(--mat-sys-surface-container-low);
-  --amb-surface-inset:      var(--mat-sys-surface-container);
-  --amb-ink:                var(--mat-sys-on-surface);
-  --amb-muted:              var(--mat-sys-on-surface-variant);
-  --amb-line:               var(--mat-sys-outline-variant);
+  /* Alias semánticos */
+  --text-body: var(--navy-800); --text-muted: var(--gray-500); --text-subtle: var(--gray-400);
+  --text-inverse: var(--white); --text-accent: var(--orange-500); --text-link: var(--navy-600);
+  --text-danger: var(--danger-500);
+  --surface-page: var(--gray-050); --surface-card: var(--white); --surface-sunken: var(--navy-050);
+  --surface-header: var(--gray-100); --surface-inverse: var(--navy-800);
+  --surface-accent: var(--orange-500); --surface-accent-soft: var(--orange-100);
+  --border-subtle: var(--gray-200); --border-strong: var(--gray-300); --border-field: var(--gray-200);
+  --border-field-hover: var(--navy-300); --border-accent: var(--orange-500);
+  --border-inverse: rgba(255, 255, 255, .18);
+  --focus-ring: var(--orange-400); --required-mark: var(--danger-500);
+  --action-primary: var(--orange-500); --action-primary-hover: var(--orange-600);
+  --action-primary-active: var(--orange-700); --action-secondary: var(--navy-800);
+  --action-secondary-hover: var(--navy-700); --action-disabled: var(--gray-200);
+  --action-disabled-text: var(--gray-400);
 
-  /* Soft teal glow for focus rings / selected states (the cyan palette's
-     own "container" tone is too electric to use for large surfaces). */
-  --amb-ring:               color-mix(in srgb, var(--amb-primary) 24%, transparent);
-  --amb-tint:               color-mix(in srgb, var(--amb-primary) 10%, var(--amb-surface));
+  /* Tipografía */
+  --font-display: "Zilla Slab", Georgia, serif;
+  --font-sans: "Poppins", "Helvetica Neue", Arial, sans-serif;
+  --font-script: "EB Garamond", Georgia, serif;
+  --text-display-1: 44px; --text-display-2: 34px; --text-h1: 28px; --text-h2: 22px; --text-h3: 18px;
+  --text-body-lg: 17px; --text-body-md: 15px; --text-body-sm: 13px; --text-label: 13px; --text-caption: 12px;
+  --lh-tight: 1.12; --lh-snug: 1.28; --lh-normal: 1.5; --lh-relaxed: 1.65;
+  --fw-light: 300; --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700;
+  --ls-display: -0.01em; --ls-normal: 0; --ls-wide: 0.04em; --ls-caps: 0.09em;
+  --type-display: var(--fw-bold) var(--text-display-1)/var(--lh-tight) var(--font-display);
+  --type-h1: var(--fw-bold) var(--text-h1)/var(--lh-snug) var(--font-display);
+  --type-h2: var(--fw-bold) var(--text-h2)/var(--lh-snug) var(--font-display);
+  --type-h3: var(--fw-semibold) var(--text-h3)/var(--lh-snug) var(--font-sans);
+  --type-body: var(--fw-regular) var(--text-body-md)/var(--lh-normal) var(--font-sans);
+  --type-label: var(--fw-semibold) var(--text-label)/1.3 var(--font-sans);
+  --type-caption: var(--fw-regular) var(--text-caption)/1.4 var(--font-sans);
 
-  /* Emergency red — reserved for "Traslado Fallido" & destructive actions */
-  --amb-emergency:          #d92d20;
-  --amb-emergency-bg:       #fdeceb;
-  --amb-success:            #1f9d57;
-  --amb-success-bg:         #e6f5ec;
+  /* Espaciado / tamaños */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px;
+  --space-6: 24px; --space-7: 32px; --space-8: 40px; --space-9: 48px; --space-10: 64px;
+  --field-height: 52px; --field-height-sm: 44px; --tap-min: 44px;
+  --gutter: 20px; --gutter-lg: 32px; --content-max: 1120px;
 
-  --amb-radius:     16px;
-  --amb-radius-sm:  12px;
-  --amb-shadow-sm:  0 1px 2px rgba(16, 44, 54, .06);
-  --amb-shadow:     0 2px 4px rgba(16, 44, 54, .05), 0 14px 34px rgba(16, 44, 54, .09);
+  /* Radios */
+  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 20px;
+  --radius-pill: 999px; --radius-field: var(--radius-md); --radius-card: var(--radius-lg);
+  --radius-button: var(--radius-md);
 
-  --amb-font-display: "Archivo", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  /* Elevación */
+  --shadow-xs: 0 1px 2px rgba(17, 48, 78, .06);
+  --shadow-sm: 0 1px 3px rgba(17, 48, 78, .08), 0 1px 2px rgba(17, 48, 78, .04);
+  --shadow-md: 0 4px 14px rgba(17, 48, 78, .10);
+  --shadow-lg: 0 12px 32px rgba(17, 48, 78, .14);
+  --shadow-accent: 0 6px 18px rgba(234, 132, 32, .28);
+  --shadow-inset-field: inset 0 1px 0 rgba(17, 48, 78, .03);
+  --ring-focus: 0 0 0 3px rgba(245, 160, 78, .45);
+
+  /* Movimiento */
+  --ease-standard: cubic-bezier(.2, .6, .25, 1);
+  --dur-fast: 150ms; --dur-base: 220ms;
+  --transition-control: background-color var(--dur-fast) var(--ease-standard),
+    border-color var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard);
+
+  /* Compatibilidad con lo poco que sigue usando Angular Material (diálogos) */
+  --amb-shadow: var(--shadow-lg);
 }
 
-/* Clinical mist background instead of flat white */
+/* ---------- Reset / base ---------- */
+html { -webkit-text-size-adjust: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
 body {
-  background-color: var(--mat-sys-surface-container) !important;
-  color: var(--amb-ink);
+  margin: 0;
+  font: var(--type-body);
+  color: var(--text-body);
+  background: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
 }
+h1, h2, h3, h4 { margin: 0; color: var(--text-body); font-family: var(--font-display); font-weight: var(--fw-bold); }
+h1 { font: var(--type-h1); } h2 { font: var(--type-h2); } h3 { font: var(--type-h3); font-family: var(--font-sans); }
+p { margin: 0 0 var(--space-4); }
+a { color: var(--text-link); text-decoration: none; border-bottom: 1px solid transparent; transition: var(--transition-control); }
+a:hover { color: var(--orange-600); border-bottom-color: var(--orange-500); }
+::selection { background: var(--orange-200); color: var(--navy-800); }
 
-/* ---------- Page header (logo + titles, above app-root) ---------- */
-.header-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  margin: 40px auto 26px;
-  padding: 0 16px;
+/* ---------- Tarjetas ---------- */
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
-/* Logout — its own toolbar row at the top of the form card, button right-aligned */
-.form-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 20px 24px 14px;
-  position: relative;
-  z-index: 4;
+.card--accent { border-top: 3px solid var(--orange-500); }
+.card__header {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-subtle);
 }
-.logout-btn {
-  border-radius: 999px !important;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  color: var(--amb-primary) !important;
-}
-.logout-btn .material-icons,
-.logout-btn mat-icon {
-  font-size: 18px;
-  height: 18px;
-  width: 18px;
-  margin-right: 2px;
-}
+.card__title { font: var(--type-h3); color: var(--navy-800); }
+.card__subtitle { margin: 4px 0 0; font: var(--type-caption); color: var(--text-muted); }
+.card__body { padding: var(--space-6); }
 @media (max-width: 600px) {
-  .form-toolbar {
-    padding: 14px 14px 10px;
-  }
-}
-.logo {
-  width: 84px;
-  height: 84px;
-  object-fit: contain;
-  border-radius: 22px;
-  padding: 10px;
-  background: var(--amb-surface);
-  border: 1px solid var(--amb-line);
-  box-shadow: 0 6px 18px rgba(16, 44, 54, 0.10);
-  margin: 0;
-}
-.main-title {
-  font-family: var(--amb-font-display);
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
-  margin: 0;
-  text-align: center;
-  color: var(--amb-ink);
-}
-.subtitle {
-  font-size: 0.95rem;
-  font-weight: 500;
-  letter-spacing: 0.4px;
-  color: var(--amb-muted);
-  margin: 0;
-  text-align: center;
+  .card__header { padding: var(--space-4) var(--space-5); }
+  .card__body { padding: var(--space-5); }
 }
 
-/* ---------- Reusable step header (eyebrow → title → context) ---------- */
-.step-head {
-  margin: 4px 0 26px;
-}
-.step-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 1.3px;
-  text-transform: uppercase;
-  color: var(--amb-primary);
-  margin-bottom: 10px;
-}
-.step-eyebrow .paso {
-  background: var(--amb-primary);
-  color: var(--amb-on-primary);
-  padding: 3px 10px;
-  border-radius: 999px;
-  letter-spacing: 0.6px;
-}
-.step-head .step-title {
-  font-family: var(--amb-font-display);
-  font-size: 1.65rem;
-  font-weight: 700;
-  letter-spacing: -0.4px;
-  line-height: 1.15;
-  margin: 0 0 6px;
-  color: var(--amb-ink);
-  text-wrap: balance;
-}
-.step-sub {
-  font-size: 0.92rem;
-  color: var(--amb-muted);
-  margin: 0;
-  max-width: 62ch;
-  line-height: 1.5;
-}
+/* ---------- Campos ---------- */
+.field { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-5); }
+.field > label { font: var(--type-label); color: var(--navy-800); }
+.field .required { color: var(--required-mark); margin-left: 2px; }
+.field-control { position: relative; display: flex; align-items: center; }
 
-/* Legacy plain <h3> titles kept in sync visually if any remain */
-app-registro h3 {
-  font-family: var(--amb-font-display);
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: var(--amb-ink);
+.field-input {
+  width: 100%;
+  min-height: var(--field-height);
+  padding: 0 var(--space-4);
+  font: var(--fw-regular) var(--text-body-md)/1 var(--font-sans);
+  color: var(--navy-800);
+  background: var(--white);
+  border: 1px solid var(--border-field);
+  border-radius: var(--radius-field);
+  box-shadow: var(--shadow-inset-field);
+  outline: none;
+  transition: var(--transition-control);
 }
+textarea.field-input { min-height: var(--field-height); padding: var(--space-4); line-height: var(--lh-normal); resize: vertical; }
+select.field-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236F7C8A'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right var(--space-4) center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+.field-input::placeholder { color: var(--gray-400); }
+.field-input:focus { border-color: var(--orange-500); box-shadow: var(--ring-focus); }
+.field-input:disabled, .field-input[readonly] { background: var(--gray-050); color: var(--gray-400); cursor: not-allowed; }
+.field-input.ng-invalid.ng-touched { border-color: var(--danger-500); }
 
-/* ---------- Form fields ---------- */
-mat-form-field {
-  margin-bottom: 6px;
-  display: block;
+.field-input--icon { padding-left: 44px; }
+.field-icon {
+  position: absolute; left: 14px; display: flex; color: var(--gray-400); pointer-events: none;
 }
-mat-form-field.mat-form-field-appearance-outline {
-  margin-bottom: 6px;
+.field-suffix {
+  position: absolute; right: 14px; font: var(--type-caption); color: var(--text-subtle); pointer-events: none;
 }
-textarea {
-  margin-bottom: 0;
-}
-mat-select {
-  margin-bottom: 0;
-}
+.field-hint { font: var(--type-caption); color: var(--text-subtle); }
+.field-error { font: var(--type-caption); color: var(--danger-500); }
 
 /* ---------- Checkboxes ---------- */
-mat-checkbox {
-  margin-right: 12px;
-}
-
-/* ---------- Section panel (checkbox groups: antecedentes / examen) ---------- */
-.panel-block {
-  background: var(--amb-surface-alt);
-  border: 1px solid var(--amb-line);
-  border-radius: var(--amb-radius);
-  padding: 20px 22px;
-}
-.panel-caption {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: var(--amb-muted);
-  margin-bottom: 14px;
-}
-
-/* ---------- Document card that frames the whole form ---------- */
-.form-shell {
-  max-width: 940px;
-  margin: 0 auto 64px;
-  background: var(--amb-surface);
-  border: 1px solid var(--amb-line);
-  border-radius: 24px;
-  box-shadow: var(--amb-shadow);
-  overflow: hidden;
+.checkbox {
   position: relative;
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  min-height: var(--tap-min); padding: var(--space-2) 0; cursor: pointer;
 }
-/* Slim clinical accent along the top of the card */
-.form-shell::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--amb-primary), var(--mat-sys-tertiary, var(--amb-primary)));
-  z-index: 3;
+.checkbox-input { position: absolute; opacity: 0; width: 0; height: 0; }
+.checkbox-box {
+  flex: 0 0 auto; width: 22px; height: 22px; margin-top: 1px;
+  border-radius: var(--radius-xs); border: 2px solid var(--border-strong);
+  background: var(--white); display: flex; align-items: center; justify-content: center;
+  transition: var(--transition-control); position: relative;
 }
+.checkbox-input:checked + .checkbox-box { border-color: var(--orange-500); background: var(--orange-500); }
+.checkbox-input:checked + .checkbox-box::after {
+  content: ''; width: 11px; height: 6px; margin-top: -2px;
+  border-left: 2px solid var(--white); border-bottom: 2px solid var(--white);
+  transform: rotate(-45deg);
+}
+.checkbox-input:focus-visible + .checkbox-box { box-shadow: var(--ring-focus); }
+.checkbox-label { font: var(--fw-medium) var(--text-body-md)/1.35 var(--font-sans); color: var(--navy-800); }
+.checkbox-desc { display: block; font: var(--type-caption); color: var(--text-muted); margin-top: 2px; }
 
-/* Stepper sits flush inside the card */
-.form-shell .mat-stepper-horizontal,
-.form-shell .mat-stepper-vertical {
-  background: transparent;
-  font-family: inherit;
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: var(--field-height); padding: 0 22px;
+  border: 1px solid transparent; border-radius: var(--radius-button);
+  font: var(--fw-semibold) var(--text-body-md)/1 var(--font-sans);
+  cursor: pointer; transition: var(--transition-control); white-space: nowrap; text-decoration: none;
 }
+.btn--sm { height: var(--field-height-sm); padding: 0 16px; font-size: var(--text-body-sm); }
+.btn--lg { height: 58px; padding: 0 28px; font-size: var(--text-body-lg); }
+.btn--primary { background: var(--action-primary); color: var(--white); box-shadow: var(--shadow-accent); }
+.btn--primary:hover:not(:disabled) { background: var(--action-primary-hover); }
+.btn--secondary { background: var(--action-secondary); color: var(--white); }
+.btn--secondary:hover:not(:disabled) { background: var(--action-secondary-hover); }
+.btn--outline { background: transparent; color: var(--navy-800); border-color: var(--border-strong); }
+.btn--outline:hover:not(:disabled) { border-color: var(--navy-600); color: var(--navy-700); }
+.btn--ghost { background: transparent; color: var(--navy-700); }
+.btn--ghost:hover:not(:disabled) { background: var(--navy-050); }
+.btn--danger { background: var(--danger-500); color: var(--white); }
+.btn--danger:hover:not(:disabled) { background: var(--orange-700); }
+.btn:disabled { background: var(--action-disabled); color: var(--action-disabled-text); box-shadow: none; border-color: transparent; cursor: not-allowed; }
+.btn.icon-only { width: var(--field-height-sm); height: var(--field-height-sm); padding: 0; }
+.btn--full { width: 100%; }
 
-/* --- Progress header (horizontal) --- */
-.form-shell .mat-horizontal-stepper-header-container {
-  padding: 18px 22px 14px;
-  border-bottom: 1px solid var(--amb-line);
-  background: var(--amb-surface-alt);
+/* ---------- Badges / Alertas ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border-radius: var(--radius-pill); font: var(--fw-semibold) var(--text-caption)/1.2 var(--font-sans);
+  letter-spacing: var(--ls-wide); text-transform: uppercase; white-space: nowrap;
 }
-.form-shell .mat-horizontal-stepper-header {
-  height: auto;
-  min-height: 72px;
-  padding: 6px 4px;
-}
-/* Labels sit under each bead and show in full (wrap instead of clip) */
-.form-shell .mat-step-label {
-  font-weight: 600;
-  letter-spacing: 0.1px;
-  font-size: 0.72rem;
-  text-align: center;
-  line-height: 1.15;
-  white-space: normal;
-  max-width: 92px;
-  margin-top: 6px;
-}
-.form-shell .mat-step-text-label {
-  overflow: visible;
-  text-overflow: clip;
-  white-space: normal;
-}
-.form-shell .mat-step-label-selected {
-  font-weight: 700;
-}
-/* Step beads */
-.form-shell .mat-step-icon {
-  width: 30px;
-  height: 30px;
-  background: var(--amb-surface-inset);
-  color: var(--amb-muted);
-}
-.form-shell .mat-step-icon-selected,
-.form-shell .mat-step-icon-state-done,
-.form-shell .mat-step-icon-state-edit {
-  background: var(--amb-primary);
-  color: var(--amb-on-primary);
-}
-.form-shell .mat-step-icon-selected {
-  box-shadow: 0 0 0 4px var(--amb-ring);
-}
-.form-shell .mat-stepper-horizontal-line {
-  border-top-color: var(--amb-line);
-  margin: 0 -6px;
-}
+.badge--neutral { background: var(--gray-100); color: var(--gray-600); }
+.badge--navy { background: var(--navy-050); color: var(--navy-700); }
+.badge--accent { background: var(--orange-100); color: var(--orange-700); }
 
-/* Content area padding — applied to the single wrapper, NOT each panel.
-   (Material keeps all panels in the DOM and collapses inactive ones to
-   height:0; padding on the panel itself would inflate every hidden one.) */
-.form-shell .mat-horizontal-content-container {
-  padding: 30px 34px 4px;
-}
-.form-shell .mat-horizontal-stepper-content {
-  padding: 0;
-}
+.alert { --alert-accent: var(--danger-500); display: flex; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); }
+.alert--danger { background: var(--danger-100); }
+.alert--warning { background: var(--warning-100); --alert-accent: var(--warning-500); }
+.alert--info { background: var(--info-100); --alert-accent: var(--info-500); }
+.alert__icon { color: var(--alert-accent); display: flex; flex: 0 0 auto; }
+.alert__title { font: var(--fw-semibold) var(--text-body-md)/1.3 var(--font-sans); color: var(--alert-accent); margin-bottom: 4px; }
+.alert__body { font: var(--type-body); color: var(--gray-600); }
 
-/* --- Vertical (mobile) --- */
-.form-shell .mat-vertical-stepper-header {
-  padding: 18px 20px;
+/* ---------- Spinner (reemplaza mat-spinner) ---------- */
+.spinner {
+  width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto;
+  border: 2.5px solid rgba(255, 255, 255, .4); border-top-color: var(--white);
+  animation: ds-spin .7s linear infinite;
 }
-.form-shell .mat-vertical-content-container {
-  margin-left: 30px;
-}
-.form-shell .mat-vertical-content {
-  padding: 0 20px 20px 8px;
-}
+.spinner--dark { border-color: var(--orange-100); border-top-color: var(--orange-500); }
+.spinner--lg { width: 56px; height: 56px; border-width: 4px; }
+@keyframes ds-spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 600px) {
-  .form-shell {
-    border-radius: 18px;
-  }
-  .form-shell .mat-horizontal-content-container {
-    padding: 24px 18px 4px;
-  }
+/* ---------- Encabezado de sección (reutilizado por cada paso) ---------- */
+.step-head { margin: 4px 0 var(--space-6); }
+.step-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: var(--fw-semibold) var(--text-caption)/1 var(--font-sans);
+  letter-spacing: var(--ls-caps); text-transform: uppercase;
+  color: var(--orange-500); margin-bottom: var(--space-2);
 }
+.step-eyebrow .paso {
+  background: var(--orange-100); color: var(--orange-700);
+  padding: 3px 10px; border-radius: var(--radius-pill); letter-spacing: var(--ls-wide);
+}
+.step-title { font: var(--type-h2); color: var(--navy-800); margin: 0 0 6px; text-wrap: balance; }
+.step-sub { font: var(--type-body); color: var(--text-muted); margin: 0; max-width: 62ch; line-height: var(--lh-normal); }
 
-/* ---------- Stepper container ---------- */
-mat-step {
-  padding: 0;
-}
+/* ---------- Layout auxiliar reutilizado dentro de los pasos ---------- */
+.row { display: flex; gap: var(--space-5); margin-bottom: var(--space-2); }
+.half-width, .third-width { flex: 1; min-width: 0; }
+.full-width { width: 100%; }
 
-/* ---------- Dialogs (unchanged behaviour) ---------- */
-.mat-mdc-dialog-container {
-  padding: 20px;
-}
+.hora-container-label { margin-bottom: var(--space-2); }
+.hora-container-label label { font: var(--type-label); color: var(--navy-800); }
+.hora-selector { display: flex; gap: var(--space-4); width: 100%; margin-bottom: var(--space-4); }
+.hora-selector .field { flex: 1; margin-bottom: 0; }
+.hora-error { color: var(--danger-500); font: var(--type-caption); margin-top: -8px; margin-bottom: var(--space-4); display: block; }
+
+/* ---------- Diálogos (Angular Material se conserva sólo aquí) ---------- */
+.mat-mdc-dialog-container { padding: var(--space-5); }
 .shared-dialog-panel {
-  padding: 0;
-  border-radius: 16px;
-  box-sizing: border-box;
-  background: var(--amb-surface);
-  max-width: 92vw;
-  box-shadow: var(--amb-shadow);
-  overflow: visible;
+  padding: 0; border-radius: var(--radius-card); box-sizing: border-box;
+  background: var(--surface-card); max-width: 92vw; box-shadow: var(--shadow-lg); overflow: visible;
 }
-.shared-dialog-panel .mat-mdc-dialog-container {
-  background: transparent;
-  padding: 0;
-}
-.shared-dialog-panel .mat-mdc-dialog-container .primary-button {
-  min-width: 120px;
-  border-radius: 999px;
-  position: relative;
-  z-index: 2;
-}
-
-/* Material icon ligatures used inline in buttons */
-.material-icons {
-  font-size: 20px;
-  line-height: 1;
-  vertical-align: middle;
-}
-
-/* ---------- Authorization "Buscar" button ---------- */
-.buscar-btn {
-  border-radius: 999px !important;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-}
-/* Soft teal-tinted disabled state instead of a flat grey slab */
-.buscar-btn:disabled,
-.buscar-btn.mat-mdc-button-disabled {
-  background-color: var(--amb-tint) !important;
-  color: var(--amb-muted) !important;
-  opacity: 1 !important;
-}
+.shared-dialog-panel .mat-mdc-dialog-container { background: transparent; padding: 0; }
 
 /* ============================================================
-   Responsive — phones & tablets
-   The step components all share .row / .half-width / .full-width
-   but none set flex-direction, so stacking them here (global,
-   unscoped) reaches every step without specificity conflicts.
+   Responsive — tablets y teléfonos
    ============================================================ */
-
-/* Tablets & phones: the 8-step rail becomes a swipeable strip so every
-   step stays visible and reachable instead of being crushed or hidden. */
 @media (max-width: 840px) {
-  .form-shell {
-    margin-bottom: 40px;
-  }
-  .step-head .step-title {
-    font-size: 1.5rem;
-  }
-
-  .form-shell .mat-horizontal-stepper-header-container {
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding: 14px 14px 10px;
-  }
-  .form-shell .mat-horizontal-stepper-header-container::-webkit-scrollbar {
-    display: none;
-  }
-  .form-shell .mat-horizontal-stepper-header {
-    flex: 0 0 auto;
-    scroll-snap-align: center;
-  }
-  /* Keep the connectors from collapsing so the row overflows and scrolls */
-  .form-shell .mat-stepper-horizontal-line {
-    flex: 0 0 22px;
-    min-width: 22px;
-    margin: 0;
-  }
-  .form-shell .mat-step-label {
-    max-width: 78px;
-    font-size: 0.68rem;
-  }
+  .step-title { font-size: 24px; }
 }
 
-/* Phones: stack columns, full-width controls, compact chrome */
 @media (max-width: 600px) {
-  body {
-    padding: 0 12px 48px;
-  }
+  .row { flex-direction: column; margin-bottom: 0; gap: 0; }
+  .half-width, .third-width { width: 100%; }
 
-  /* Two-column field rows become single column */
-  .row {
-    flex-direction: column;
-    margin-bottom: 0 !important;
-  }
-  .half-width,
-  .third-width {
-    width: 100%;
-  }
+  .field { margin-bottom: var(--space-4); }
+  .hora-selector { margin-bottom: var(--space-3); }
 
-  /* Authorization search: input above a full-width button.
-     !important overrides the component-scoped `.autorizacion-row`
-     (align-items: center) so children stretch to full width. */
-  .autorizacion-row {
-    flex-direction: column;
-    align-items: stretch !important;
-    gap: 10px;
-    margin-bottom: 4px;
-  }
-  .autorizacion-field {
-    width: 100%;
-    flex: none !important;
-  }
-  .buscar-btn {
-    width: 100%;
-    height: 56px !important;
-    margin-bottom: 14px !important;
-  }
-
-  /* Tighter vertical rhythm so there's less scrolling on a phone */
-  mat-form-field {
-    margin-bottom: 2px;
-  }
-  .full-width {
-    margin-bottom: 10px !important;
-  }
-  .hora-selector,
-  .hora-selector-container {
-    margin-bottom: 8px;
-  }
-
-  /* Page header */
-  .header-container {
-    margin: 24px auto 16px;
-  }
-  .logo {
-    width: 64px;
-    height: 64px;
-  }
-  .main-title {
-    font-size: 1.5rem;
-  }
-  .subtitle {
-    font-size: 0.85rem;
-  }
-
-  /* Step header */
-  .step-head {
-    margin-bottom: 20px;
-  }
-  .step-head .step-title {
-    font-size: 1.35rem;
-  }
-  .step-sub {
-    font-size: 0.88rem;
-  }
-
-  /* Vertical stepper: trim the deep left indent on small screens */
-  .form-shell .mat-vertical-stepper-header {
-    padding: 16px 14px;
-  }
-  .form-shell .mat-vertical-content-container {
-    margin-left: 20px;
-  }
-  .form-shell .mat-vertical-content {
-    padding: 0 6px 18px 14px;
-  }
+  .step-head { margin-bottom: var(--space-5); }
+  .step-title { font-size: 21px; }
+  .step-sub { font-size: 14px; }
 }
 
-/* Very small phones: give vitals inputs room to breathe */
 @media (max-width: 380px) {
-  .signos-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .hora-selector-container {
-    grid-column: 1 / -1 !important;
-  }
+  .signos-grid { grid-template-columns: 1fr !important; }
+  .hora-selector-container { grid-column: 1 / -1 !important; }
 }

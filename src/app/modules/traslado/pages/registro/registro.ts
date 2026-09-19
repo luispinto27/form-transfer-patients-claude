@@ -1,18 +1,16 @@
 import { Component, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
-import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, AbstractControlOptions, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { switchMap, timeout } from 'rxjs';
-import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { ServicioService, ServicioResponse } from '../../../../services/servicio.service';
 import { PdfService, GeneratePdfResponse } from '../../../../services/generar-pdf';
-import { AuthService } from '../../../../services/auth.service';
-import { FIELDS_TO_TOGGLE_VALIDATORS, FIELD_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
+import { TrasladoDto } from '../../../../models/traslado.dto';
+import { FIELD_LABELS, GROUP_ERROR_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
+import { rangoHorario } from '../../../../shared/validators/rango-horario';
 
-import { MatStepperModule } from '@angular/material/stepper';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { Icon } from '../../../../shared/ds/icon/icon';
 
 // Step components
 import { TrasladoStep } from '../../steps/traslado-step/traslado-step';
@@ -32,10 +30,8 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatStepperModule,
-    MatButtonModule,
-    MatIconModule,
     MatDialogModule,
+    Icon,
     // Steps
     TrasladoStep,
     PacienteStep,
@@ -52,29 +48,32 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
 
   export class Registro {
 
-    @ViewChild('stepper')
-    stepper: any;
+    @ViewChild('main', { read: ElementRef })
+    mainRef?: ElementRef;
 
-    @ViewChild('stepper', { read: ElementRef })
-    stepperRef?: ElementRef;
+    @ViewChild('railNav', { read: ElementRef })
+    railNavRef?: ElementRef;
 
     @ViewChild(FirmasStep)
     firmasStep?: FirmasStep;
 
+    readonly sectionLabels = [
+      'Traslado', 'Paciente', 'Antecedentes', 'Signos vitales',
+      'Examen físico', 'Gastos', 'Conducta', 'Firmas'
+    ];
+    currentIndex = 0;
+
     form: FormGroup;
-    isMobile = false;
     isSearching = false;
     searchLocked = false;
     searchError: string | null = null;
 
     constructor(
       private readonly fb: FormBuilder,
-      private readonly breakpointObserver: BreakpointObserver,
       private readonly servicioService: ServicioService,
       private readonly pdfService: PdfService,
       private readonly dialog: MatDialog,
-      private readonly auth: AuthService,
-      private readonly router: Router,
+      private readonly route: ActivatedRoute,
       private readonly cdr: ChangeDetectorRef
     ) {
 
@@ -95,7 +94,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
           horaFin: ['01:00', Validators.required],
           retorno: [false],
           trasladoFallido: [false]
-        }),
+        }, { validators: rangoHorario('horaInicio', 'horaFin') } as AbstractControlOptions),
 
         paciente: this.fb.group({
           nombreCompleto: ['', [Validators.required, Validators.minLength(3)]],
@@ -116,7 +115,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
           horaInicioEspera: ['01:00', Validators.required],
           horaFinEspera: ['01:00', Validators.required],
           estadoEntrega: [false],
-        }),
+        }, { validators: rangoHorario('horaInicioEspera', 'horaFinEspera') } as AbstractControlOptions),
 
         antecedentes: this.fb.group({
           acv: [false],
@@ -169,15 +168,13 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         this.searchLocked = false;
       });
 
-      // Vertical stepper on phones and portrait tablets (not enough width for
-      // 8 horizontal steps); horizontal on landscape tablets and desktop.
-      this.breakpointObserver
-        .observe([Breakpoints.Handset, Breakpoints.TabletPortrait])
-        .subscribe(result => {
-          this.isMobile = result.matches;
-        });
       this.agregarSignoVital();
       this.agregarGasto();
+
+      // Si el formulario se abre con ?autorizacion=NUMERO en la URL (enlace
+      // directo desde el sistema de despacho), precarga el campo y dispara
+      // la consulta automáticamente, sin esperar a que alguien pulse "Buscar".
+      this.autoBuscarDesdeUrl();
 
 
 
@@ -187,33 +184,31 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       });
     }
 
-    private updateValidatorsBasedOnTrasladoFallido(trasladoFallido: boolean): void {
-      FIELDS_TO_TOGGLE_VALIDATORS.forEach(fieldPath => {
-        const control = this.form.get(fieldPath);
-        if (control) {
-          if (trasladoFallido) {
-            control.clearValidators();
-          } else {
-            this.applyOriginalValidators(fieldPath, control);
-          }
-          control.updateValueAndValidity({ emitEvent: false });
-        }
-      });
+    /**
+     * Sections that identify the service and the patient are required whatever
+     * happened on the road, so they keep their validators even on a failed
+     * transfer. Everything else is clinical record of a trip that did not
+     * happen, and is exempt.
+     */
+    private readonly ALWAYS_REQUIRED_SECTIONS = ['traslado', 'paciente'];
 
-      // Toggle validators for signos vitales array
+    /**
+     * Ticking "Traslado Fallido" drops the validators of every section except
+     * those above; unticking it restores them all from the constants.
+     */
+    private updateValidatorsBasedOnTrasladoFallido(trasladoFallido: boolean): void {
+      this.toggleGroupValidators(this.form, '', trasladoFallido);
+
+      // toggleGroupValidators() only walks leaves, so the cross-field rule on
+      // Conducta has to be exempted by hand like the rest of that section.
+      // Traslado keeps its own: it stays required whatever happened.
+      this.conductaGroup.setValidators(
+        trasladoFallido ? [] : [rangoHorario('horaInicioEspera', 'horaFinEspera')]
+      );
+      this.conductaGroup.updateValueAndValidity({ emitEvent: false });
+
       this.signosArray.controls.forEach(control => {
         if (control instanceof FormGroup) {
-          Object.keys(control.controls).forEach(key => {
-            const field = control.get(key);
-            if (field) {
-              if (trasladoFallido) {
-                field.clearValidators();
-              } else {
-                this.applyOriginalSignosValidators(key, field);
-              }
-              field.updateValueAndValidity({ emitEvent: false });
-            }
-          });
           if (trasladoFallido) {
             this.lockSignosNumberFields(control);
           } else {
@@ -222,26 +217,70 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         }
       });
 
-      // Toggle validators for registroGasto array
       this.gastoArray.controls.forEach(control => {
         if (control instanceof FormGroup) {
-          Object.keys(control.controls).forEach(key => {
-            const field = control.get(key);
-            if (field) {
-              if (trasladoFallido) {
-                field.clearValidators();
-              } else {
-                this.applyOriginalGastoValidators(key, field);
-              }
-              field.updateValueAndValidity({ emitEvent: false });
-            }
-          });
           if (trasladoFallido) {
             this.lockGastoNumberFields(control);
           } else {
             this.unlockGastoNumberFields(control);
           }
         }
+      });
+    }
+
+    /** Walks the whole tree so new sections are covered without a field list. */
+    private toggleGroupValidators(group: FormGroup, basePath: string, clear: boolean): void {
+      Object.keys(group.controls).forEach(key => {
+        const control = group.get(key);
+        if (!control) {
+          return;
+        }
+
+        const path = basePath ? `${basePath}.${key}` : key;
+
+        if (control instanceof FormGroup) {
+          this.toggleGroupValidators(control, path, clear);
+          return;
+        }
+
+        if (control instanceof FormArray) {
+          control.controls.forEach(row => {
+            if (row instanceof FormGroup) {
+              this.toggleRowValidators(row, key, clear);
+            }
+          });
+          return;
+        }
+
+        if (clear && !this.isAlwaysRequired(path)) {
+          control.clearValidators();
+        } else {
+          this.applyOriginalValidators(path, control);
+        }
+        control.updateValueAndValidity({ emitEvent: false });
+      });
+    }
+
+    private isAlwaysRequired(path: string): boolean {
+      return this.ALWAYS_REQUIRED_SECTIONS.some(section => path.startsWith(`${section}.`));
+    }
+
+    /** Rows of `signos` / `registroGasto`, keyed by field name rather than path. */
+    private toggleRowValidators(row: FormGroup, arrayKey: string, clear: boolean): void {
+      const validators = arrayKey === 'signos' ? SIGNOS_FIELD_VALIDATORS : GASTO_FIELD_VALIDATORS;
+
+      Object.keys(row.controls).forEach(key => {
+        const field = row.get(key);
+        if (!field) {
+          return;
+        }
+
+        if (clear) {
+          field.clearValidators();
+        } else if (validators[key]) {
+          field.setValidators(validators[key]);
+        }
+        field.updateValueAndValidity({ emitEvent: false });
       });
     }
 
@@ -288,20 +327,6 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       }
     }
 
-    private applyOriginalSignosValidators(fieldName: string, control: any): void {
-      const validators = SIGNOS_FIELD_VALIDATORS[fieldName];
-      if (validators) {
-        control.setValidators(validators);
-      }
-    }
-
-    private applyOriginalGastoValidators(fieldName: string, control: any): void {
-      const validators = GASTO_FIELD_VALIDATORS[fieldName];
-      if (validators) {
-        control.setValidators(validators);
-      }
-    }
-
     get trasladoGroup(): FormGroup {
       return this.form.get('traslado') as FormGroup;
     }
@@ -334,6 +359,15 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       return this.form.get('firmas') as FormGroup;
     }
 
+    /**
+     * Drives the notice in the Traslado step and the early "Finalizar" button:
+     * with the transfer marked failed only Traslado and Paciente are required,
+     * so the user must be able to close the record without walking every step.
+     */
+    get trasladoFallido(): boolean {
+      return !!this.form.get('traslado.trasladoFallido')?.value;
+    }
+
     crearSignoVital(): FormGroup {
       return this.fb.group({
         hora: ['01:00', Validators.required],
@@ -351,7 +385,10 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
     agregarSignoVital(): void {
       const group = this.crearSignoVital();
       this.signosArray.push(group);
+      // A row added while the transfer is marked failed must arrive unvalidated,
+      // otherwise `hora`, `ta` and `dxSecundario` stay required and block submit.
       if (this.form.get('traslado.trasladoFallido')?.value) {
+        this.toggleRowValidators(group, 'signos', true);
         this.lockSignosNumberFields(group);
       }
     }
@@ -373,6 +410,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       const group = this.crearGasto();
       this.gastoArray.push(group);
       if (this.form.get('traslado.trasladoFallido')?.value) {
+        this.toggleRowValidators(group, 'registroGasto', true);
         this.lockGastoNumberFields(group);
       }
     }
@@ -394,16 +432,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         return;
       }
 
-      const dto = {
-        traslado: this.form.value.traslado,
-        paciente: this.form.value.paciente,
-        antecedentes: this.form.value.antecedentes,
-        signos: this.form.value.signos,
-        examen: this.form.value.examen,
-        gastos: this.form.value.registroGasto,
-        conducta: this.form.value.conducta,
-        firmas: this.form.value.firmas
-      };
+      const dto = this.construirDto();
 
       console.log('DTO a enviar al backend:', dto);
 
@@ -427,8 +456,8 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       this.pdfService.generatePdf(dto).pipe(
         switchMap(pdf => {
           pdfGenerado = pdf;
-          const dtoConHistoria = { ...dto, pdfHistoria: pdf.fileBase64 };
-          return this.servicioService.guardarTraslado(dtoConHistoria);
+          const payload = { ...this.construirPayload(dto), pdfHistoria: pdf.fileBase64 };
+          return this.servicioService.guardarTraslado(payload);
         })
       ).subscribe({
         next: (guardar) => {
@@ -458,6 +487,125 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
           });
         }
       });
+    }
+
+    /**
+     * What the user actually recorded. This is what the PDF is rendered from,
+     * so a section nobody filled in stays empty here and the document prints it
+     * as "sin registro".
+     *
+     * `getRawValue()`, not `value`: on a failed transfer the numeric
+     * signos/gasto fields are set to 0 and then disabled, and `form.value`
+     * omits disabled controls — which would drop those keys entirely.
+     *
+     * `signos` and `gastos` always travel with the starter row the form is
+     * built with, even untouched: `Traslado.guardar` rejects an empty array
+     * ("El campo [signos] debe ser un arreglo con al menos un elemento").
+     */
+    construirDto(): TrasladoDto {
+      const raw = this.form.getRawValue();
+
+      return {
+        traslado: raw.traslado,
+        paciente: raw.paciente,
+        antecedentes: raw.antecedentes,
+        signos: raw.signos,
+        examen: raw.examen,
+        gastos: raw.registroGasto,
+        conducta: raw.conducta,
+        firmas: raw.firmas
+      };
+    }
+
+    /** Stands in for a free-text field the failed transfer left with nothing to say. */
+    private readonly SIN_REGISTRO = 'No aplica - traslado fallido';
+
+    /**
+     * Vitals for a row the failed transfer left untouched.
+     *
+     * `Traslado.guardar` belongs to a third party and validates shape and range
+     * on every field ("El campo [signos[0].ta] debe tener formato
+     * sistolica/diastolica"), with no exemption for `trasladoFallido`, so a
+     * blank or zeroed row cannot get through. These are ordinary adult values,
+     * mid-range for the limits the form itself enforces (fc 40-200, fr 10-50,
+     * temperatura 35-42, glicemia 40-500, spo2 80-100, glasgow 3-15).
+     *
+     * They are a placeholder for a patient nobody assessed, not a measurement.
+     * Nothing else in the app reads them: they exist only in the object handed
+     * to that endpoint, `dxSecundario` labels the row as such right beside
+     * them, and `traslado.trasladoFallido` travels in the same payload.
+     */
+    private readonly SIGNOS_SIN_VALORACION = {
+      ta: '120/80',
+      fc: 80,
+      fr: 16,
+      temperatura: 36.5,
+      glicemia: 90,
+      spo2: 98,
+      glasgow: 15
+    };
+
+    /** `cantidad` is validated as min 0.01, so a zeroed placeholder row is refused too. */
+    private readonly GASTO_SIN_REGISTRO_CANTIDAD = 1;
+
+    /**
+     * The same record, reshaped to satisfy `Traslado.guardar`.
+     *
+     * The endpoint requires every field of every section whatever
+     * `trasladoFallido` says, so the sections the user is allowed to skip
+     * cannot reach it blank. They are filled here, in the payload only —
+     * `construirDto()` and therefore the PDF keep showing those sections as
+     * "sin registro", so the printed record never presents any of this as
+     * something that was measured or spent.
+     *
+     * Signatures are the exception and stay empty: a signature is an
+     * attestation by a named person, and it can still be collected for real on
+     * a failed transfer from the Firmas step.
+     */
+    construirPayload(dto: TrasladoDto): TrasladoDto {
+      if (!dto.traslado?.trasladoFallido) {
+        return dto;
+      }
+
+      const sinValoracion = this.SIGNOS_SIN_VALORACION;
+
+      return {
+        ...dto,
+        antecedentes: { ...dto.antecedentes, dxPrincipal: this.oSinRegistro(dto.antecedentes?.dxPrincipal) },
+        signos: (dto.signos ?? []).map(signo => ({
+          ...signo,
+          ta: this.oValor(signo?.ta, sinValoracion.ta),
+          fc: this.oValor(signo?.fc, sinValoracion.fc),
+          fr: this.oValor(signo?.fr, sinValoracion.fr),
+          temperatura: this.oValor(signo?.temperatura, sinValoracion.temperatura),
+          glicemia: this.oValor(signo?.glicemia, sinValoracion.glicemia),
+          spo2: this.oValor(signo?.spo2, sinValoracion.spo2),
+          glasgow: this.oValor(signo?.glasgow, sinValoracion.glasgow),
+          dxSecundario: this.oSinRegistro(signo?.dxSecundario)
+        })),
+        examen: { ...dto.examen, descripcion: this.oSinRegistro(dto.examen?.descripcion) },
+        gastos: (dto.gastos ?? []).map(gasto => ({
+          ...gasto,
+          descripcion: this.oSinRegistro(gasto?.descripcion),
+          cantidad: this.oValor(gasto?.cantidad, this.GASTO_SIN_REGISTRO_CANTIDAD)
+        })),
+        conducta: { ...dto.conducta, conducta: this.oSinRegistro(dto.conducta?.conducta) }
+      };
+    }
+
+    private oSinRegistro(value: string | undefined): string {
+      return value?.trim() ? value : this.SIN_REGISTRO;
+    }
+
+    /** Keeps what the user typed; falls back only on a blank or zeroed field. */
+    private oValor<T extends string | number>(value: T | null | undefined, fallback: T): T {
+      if (value === null || value === undefined) {
+        return fallback;
+      }
+      if (typeof value === 'number') {
+        return value === 0 ? fallback : value;
+      }
+      return value.trim() ? value : fallback;
     }
 
     private descargarPdf(pdf: GeneratePdfResponse): void {
@@ -498,8 +646,22 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         }
       };
 
+      // Rules that compare two fields sit on the group, so they never show up
+      // in the leaf walk below and would leave the dialog empty on an invalid
+      // form. GROUP_ERROR_LABELS carries their wording.
+      const checkGroupErrors = (group: FormGroup, basePath: string) => {
+        Object.keys(group.errors ?? {}).forEach(key => {
+          const label = GROUP_ERROR_LABELS[basePath ? `${basePath}.${key}` : key];
+          if (label) {
+            errors.push(label);
+          }
+        });
+      };
+
       // Check all form controls recursively
       const checkGroup = (group: FormGroup, basePath: string = '') => {
+        checkGroupErrors(group, basePath);
+
         Object.keys(group.controls).forEach(key => {
           const control = group.get(key);
           const path = basePath ? `${basePath}.${key}` : key;
@@ -532,11 +694,10 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
     private resetForm(): void {
       const today = new Date().toISOString().split('T')[0];
 
-      // Fully reset the stepper FIRST. Unlike setting `selectedIndex = 0`, this
-      // clears every step's "interacted/completed" flag, so the steps go back to
-      // plain numbers instead of showing the pencil/done icons ("processed").
-      // It also resets each step's control, so we re-seed defaults afterwards.
-      this.stepper?.reset();
+      // Section "done" state is derived live from each control's validity
+      // (see sectionDone()), so jumping back to the first section and
+      // resetting the form is enough to show every section as pending again.
+      this.currentIndex = 0;
 
       this.form.reset({
         traslado: {
@@ -568,7 +729,7 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       this.searchError = null;
     }
 
-    /** Control that backs each step, in stepper order. */
+    /** Control that backs each step/section, in rail order. */
     getStepControl(index: number): AbstractControl | null {
       switch (index) {
         case 0: return this.trasladoGroup;
@@ -583,14 +744,33 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       }
     }
 
-    logout(): void {
-      this.auth.logout();
-      this.router.navigate(['/login']);
+    /** Whether the section at `index` currently passes its own validators. */
+    sectionDone(index: number): boolean {
+      return this.getStepControl(index)?.valid ?? false;
+    }
+
+    get completedCount(): number {
+      return this.sectionLabels.reduce((n, _, i) => n + (this.sectionDone(i) ? 1 : 0), 0);
+    }
+
+    /** Lee ?autorizacion=NUMERO de la URL y, si viene, dispara la consulta de una vez. */
+    private autoBuscarDesdeUrl(): void {
+      const autorizacion = this.route.snapshot.queryParamMap.get('autorizacion')?.trim();
+      if (!autorizacion) {
+        return;
+      }
+      this.trasladoGroup.patchValue({ autorizacionNumero: autorizacion });
+      this.onBuscarAutorizacion(autorizacion);
+    }
+
+    /** Sidebar navigation: free jump, same as the design's SectionNav. */
+    goTo(index: number): void {
+      this.currentIndex = index;
+      this.scrollToTop();
     }
 
     nextStep(): void {
-      const index = this.stepper?.selectedIndex ?? 0;
-      const control = this.getStepControl(index);
+      const control = this.getStepControl(this.currentIndex);
 
       if (control) {
         control.markAllAsTouched();
@@ -601,38 +781,54 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
         }
       }
 
-      this.stepper?.next();
-      this.scrollToTop();
+      if (this.currentIndex < this.sectionLabels.length - 1) {
+        this.currentIndex++;
+        this.scrollToTop();
+      }
     }
 
     previousStep(): void {
-      this.stepper?.previous();
-      this.scrollToTop();
+      if (this.currentIndex > 0) {
+        this.currentIndex--;
+        this.scrollToTop();
+      }
     }
 
     private scrollToTop(): void {
+      // Instant, not 'smooth': smooth scrolling depends on animation frames
+      // that some automated/headless browser contexts never paint, silently
+      // leaving the page scrolled mid-section. An instant jump always lands.
       setTimeout(() => {
-        // Move the whole page back to the top so every step change lands the
-        // user at the header/first field instead of mid-scroll.
         if (typeof window !== 'undefined') {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo(0, 0);
         }
+        this.mainRef?.nativeElement?.scrollTo?.(0, 0);
         this.scrollActiveStepIntoView();
-      }, 120);
+      });
     }
 
-    /** Keep the active step visible in the horizontally-scrollable rail (mobile). */
+    /**
+     * Keep the active section visible in the horizontally-scrollable rail
+     * (mobile only). Scrolls the nav strip's own scrollLeft directly instead
+     * of calling `Element.scrollIntoView()` on the button — that API also
+     * repositions the nearest scrollable ancestor along the vertical axis,
+     * which on desktop meant it fought scrollToTop() and re-scrolled the
+     * whole page back down right after it had been reset to 0.
+     */
     private scrollActiveStepIntoView(): void {
-      const header = this.stepperRef?.nativeElement?.querySelector(
-        '.mat-horizontal-stepper-header[aria-selected="true"]'
-      ) as HTMLElement | null;
-      header?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      const nav = this.railNavRef?.nativeElement as HTMLElement | undefined;
+      const active = nav?.querySelector('.rail__nav-btn.is-active') as HTMLElement | null;
+      if (!nav || !active || nav.scrollWidth <= nav.clientWidth) {
+        return;
+      }
+      const target = active.offsetLeft - (nav.clientWidth - active.clientWidth) / 2;
+      nav.scrollTo(Math.max(0, target), 0);
     }
 
     private scrollToFirstError(): void {
       setTimeout(() => {
-        const firstInvalid = this.stepperRef?.nativeElement?.querySelector(
-          '.ng-invalid.ng-touched:not(form):not(mat-stepper):not([formgroupname]), .error-message'
+        const firstInvalid = this.mainRef?.nativeElement?.querySelector(
+          '.ng-invalid.ng-touched:not(form):not([formgroupname]), .field-error'
         ) as HTMLElement | null;
         firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         if (firstInvalid && typeof firstInvalid.focus === 'function') {

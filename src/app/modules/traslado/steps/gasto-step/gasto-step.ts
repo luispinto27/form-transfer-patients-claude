@@ -1,22 +1,17 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
-
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { EsObligatorio } from '../../../../shared/pipes/es-obligatorio';
+import { Icon } from '../../../../shared/ds/icon/icon';
 
 @Component({
   selector: 'app-gasto-step',
   standalone: true,
   imports: [
+    EsObligatorio,
     CommonModule,
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule
+    Icon
   ],
   templateUrl: './gasto-step.html',
   styleUrls: ['./gasto-step.css']

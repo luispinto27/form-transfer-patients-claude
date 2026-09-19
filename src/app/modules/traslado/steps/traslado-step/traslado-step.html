@@ -4,159 +4,173 @@
   <p class="step-sub">Busca la autorización para pre-llenar el servicio, o captura los datos manualmente.</p>
 </header>
 
-<div [formGroup]="group">
+<div [formGroup]="group" class="card card--accent">
+  <div class="card__body">
 
-  <div class="autorizacion-row">
-    <mat-form-field appearance="outline" class="autorizacion-field">
-      <mat-label>Número de autorización</mat-label>
-      <input matInput formControlName="autorizacionNumero">
-      <mat-error *ngIf="group.get('autorizacionNumero')?.hasError('required')">
-        El número de autorización es requerido
-      </mat-error>
-    </mat-form-field>
-    <button mat-raised-button color="primary" type="button"
-      class="buscar-btn"
-      [disabled]="isSearching || searchLocked || !group.get('autorizacionNumero')?.value"
-      (click)="onBuscar()">
-      <mat-spinner *ngIf="isSearching" diameter="20"></mat-spinner>
-      <mat-icon *ngIf="!isSearching">search</mat-icon>
-      {{ isSearching ? 'Buscando...' : 'Buscar' }}
-    </button>
+    <div class="autorizacion-row">
+      <div class="field autorizacion-field">
+        <label>Número de autorización <span class="required">*</span></label>
+        <input class="field-input" formControlName="autorizacionNumero">
+        <span class="field-error" *ngIf="group.get('autorizacionNumero')?.invalid && group.get('autorizacionNumero')?.touched">
+          El número de autorización es requerido
+        </span>
+      </div>
+      <button type="button"
+        class="btn btn--primary buscar-btn"
+        [disabled]="isSearching || searchLocked || !group.get('autorizacionNumero')?.value"
+        (click)="onBuscar()">
+        <span class="spinner" *ngIf="isSearching"></span>
+        <app-icon name="search" *ngIf="!isSearching" [size]="18"></app-icon>
+        {{ isSearching ? 'Buscando...' : 'Buscar' }}
+      </button>
+    </div>
+
+    <div class="alert alert--danger search-error" *ngIf="searchError">
+      <span class="alert__icon"><app-icon name="alert" [size]="18"></app-icon></span>
+      <div class="alert__body">{{ searchError }}</div>
+    </div>
+
+    <div class="field full-width">
+      <label>Código <span class="required">*</span></label>
+      <input class="field-input" formControlName="codigo">
+    </div>
+
+    <div class="field full-width">
+      <label>Fecha <span class="required">*</span></label>
+      <input class="field-input" type="date" readonly formControlName="fecha">
+      <span class="field-error" *ngIf="group.get('fecha')?.invalid && group.get('fecha')?.touched">
+        La fecha es requerida
+      </span>
+    </div>
+
+    <div class="field full-width">
+      <label>Nombre de la entidad <span class="required">*</span></label>
+      <input class="field-input" formControlName="entidad">
+      <span class="field-error" *ngIf="group.get('entidad')?.invalid && group.get('entidad')?.touched">
+        La entidad es requerida
+      </span>
+    </div>
+
+    <div class="field full-width">
+      <label>Autorizado por <span class="required">*</span></label>
+      <input class="field-input" formControlName="autorizadoPor">
+      <span class="field-error" *ngIf="group.get('autorizadoPor')?.invalid && group.get('autorizadoPor')?.touched">
+        El campo es requerido
+      </span>
+    </div>
+
+    <div class="row">
+      <div class="field half-width">
+        <label>Móvil <span class="required">*</span></label>
+        <input class="field-input" formControlName="movil">
+        <span class="field-error" *ngIf="group.get('movil')?.invalid && group.get('movil')?.touched">
+          El móvil es requerido
+        </span>
+      </div>
+
+      <div class="field half-width">
+        <label>Tipo de traslado <span class="required">*</span></label>
+        <input class="field-input" formControlName="tipo">
+        <span class="field-error" *ngIf="group.get('tipo')?.invalid && group.get('tipo')?.touched">
+          El tipo es requerido
+        </span>
+      </div>
+    </div>
+
+    <div class="field full-width">
+      <label>Origen del traslado <span class="required">*</span></label>
+      <input class="field-input" formControlName="origen">
+      <span class="field-error" *ngIf="group.get('origen')?.invalid && group.get('origen')?.touched">
+        El origen es requerido
+      </span>
+    </div>
+
+    <div class="hora-container-label">
+      <label>Hora inicio del traslado</label>
+    </div>
+    <div class="hora-selector">
+      <div class="field">
+        <label>Hora</label>
+        <select class="field-input"
+          [value]="getHourFromTime(group.get('horaInicio')?.value)"
+          (change)="onHourChange('horaInicio', +$any($event.target).value)">
+          <option *ngFor="let hour of hours" [value]="hour">{{ formatNumber(hour) }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Minutos</label>
+        <select class="field-input"
+          [value]="getMinuteFromTime(group.get('horaInicio')?.value)"
+          (change)="onMinuteChange('horaInicio', +$any($event.target).value)">
+          <option *ngFor="let minute of minutes" [value]="minute">{{ formatNumber(minute) }}</option>
+        </select>
+      </div>
+    </div>
+    <span class="field-error hora-error" *ngIf="group.get('horaInicio')?.invalid && group.get('horaInicio')?.touched">
+      La hora de inicio es requerida
+    </span>
+
+    <div class="field full-width">
+      <label>Destino del traslado <span class="required">*</span></label>
+      <input class="field-input" formControlName="destino">
+      <span class="field-error" *ngIf="group.get('destino')?.invalid && group.get('destino')?.touched">
+        El destino es requerido
+      </span>
+    </div>
+
+    <div class="hora-container-label">
+      <label>Hora finalización del traslado</label>
+    </div>
+    <div class="hora-selector">
+      <div class="field">
+        <label>Hora</label>
+        <select class="field-input"
+          [value]="getHourFromTime(group.get('horaFin')?.value)"
+          (change)="onHourChange('horaFin', +$any($event.target).value)">
+          <option *ngFor="let hour of hours" [value]="hour">{{ formatNumber(hour) }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Minutos</label>
+        <select class="field-input"
+          [value]="getMinuteFromTime(group.get('horaFin')?.value)"
+          (change)="onMinuteChange('horaFin', +$any($event.target).value)">
+          <option *ngFor="let minute of minutes" [value]="minute">{{ formatNumber(minute) }}</option>
+        </select>
+      </div>
+    </div>
+    <span class="field-error hora-error" *ngIf="group.get('horaFin')?.invalid && group.get('horaFin')?.touched">
+      La hora de finalización es requerida
+    </span>
+    <!-- No `touched` guard: the selects never blur, and the error can only come
+         from a time the user just picked, so it is shown as soon as it exists. -->
+    <span class="field-error hora-error" *ngIf="group.errors?.['rangoHorarioInvalido']">
+      La hora de finalización no puede ser anterior a la hora de inicio
+    </span>
+
+    <label class="checkbox">
+      <input type="checkbox" class="checkbox-input" formControlName="retorno">
+      <span class="checkbox-box"></span>
+      <span class="checkbox-label">Retorno</span>
+    </label>
+
+    <label class="checkbox">
+      <input type="checkbox" class="checkbox-input" formControlName="trasladoFallido">
+      <span class="checkbox-box"></span>
+      <span class="checkbox-label">Traslado Fallido</span>
+    </label>
+
+    <div class="alert alert--warning traslado-fallido-aviso" *ngIf="group.get('trasladoFallido')?.value">
+      <span class="alert__icon"><app-icon name="warning" [size]="18"></app-icon></span>
+      <div class="alert__body">
+        <div class="alert__title">Traslado marcado como fallido</div>
+        Solo debes diligenciar las secciones <strong>Traslado</strong> y <strong>Paciente</strong>.
+        Antecedentes, signos vitales, examen físico, gastos, conducta y firmas quedan opcionales:
+        puedes cerrar el registro con el botón <strong>Finalizar</strong> de la barra inferior sin
+        llenarlas. Las secciones que dejes vacías se reportarán como «sin registro» en el PDF y en
+        el envío.
+      </div>
+    </div>
+
   </div>
-
-  <mat-error *ngIf="searchError" class="search-error">
-    <mat-icon>error_outline</mat-icon>
-    {{ searchError }}
-  </mat-error>
-
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Código</mat-label>
-    <input matInput formControlName="codigo">
-  </mat-form-field>
-
-<mat-form-field appearance="outline" class="full-width">
-  <mat-label>Fecha</mat-label>
-  <input matInput type="date" readonly formControlName="fecha">
-  <mat-error *ngIf="group.get('fecha')?.hasError('required')">
-    La fecha es requerida
-  </mat-error>
-  </mat-form-field>
-
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Nombre de la entidad</mat-label>
-    <input matInput formControlName="entidad">
-    <mat-error *ngIf="group.get('entidad')?.hasError('required')">
-      La entidad es requerida
-    </mat-error>
-  </mat-form-field>
-
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Autorizado por</mat-label>
-    <input matInput formControlName="autorizadoPor">
-    <mat-error *ngIf="group.get('autorizadoPor')?.hasError('required')">
-      El campo es requerido
-    </mat-error>
-  </mat-form-field>
-
-  <div class="row">
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Móvil</mat-label>
-      <input matInput formControlName="movil">
-      <mat-error *ngIf="group.get('movil')?.hasError('required')">
-        El móvil es requerido
-      </mat-error>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Tipo de traslado</mat-label>
-      <input matInput formControlName="tipo">
-      <mat-error *ngIf="group.get('tipo')?.hasError('required')">
-        El tipo es requerido
-      </mat-error>
-    </mat-form-field>
-  </div>
-
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Origen del traslado</mat-label>
-    <input matInput formControlName="origen">
-    <mat-error *ngIf="group.get('origen')?.hasError('required')">
-      El origen es requerido
-    </mat-error>
-  </mat-form-field>
-
-  <div class="hora-container-label">
-    <label>Hora inicio del traslado</label>
-  </div>
-  <div class="hora-selector">
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Hora</mat-label>
-      <mat-select
-        [value]="getHourFromTime(group.get('horaInicio')?.value)"
-        (selectionChange)="onHourChange('horaInicio', $event.value)">
-        <mat-option *ngFor="let hour of hours" [value]="hour">
-          {{ formatNumber(hour) }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Minutos</mat-label>
-      <mat-select
-        [value]="getMinuteFromTime(group.get('horaInicio')?.value)"
-        (selectionChange)="onMinuteChange('horaInicio', $event.value)">
-        <mat-option *ngFor="let minute of minutes" [value]="minute">
-          {{ formatNumber(minute) }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-  </div>
-  <mat-error *ngIf="group.get('horaInicio')?.hasError('required')" class="hora-error">
-    La hora de inicio es requerida
-  </mat-error>
-
-
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Destino del traslado</mat-label>
-    <input matInput formControlName="destino">
-    <mat-error *ngIf="group.get('destino')?.hasError('required')">
-      El destino es requerido
-    </mat-error>
-  </mat-form-field>
-
-  <div class="hora-container-label">
-    <label>Hora finalización del traslado</label>
-  </div>
-  <div class="hora-selector">
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Hora</mat-label>
-      <mat-select
-        [value]="getHourFromTime(group.get('horaFin')?.value)"
-        (selectionChange)="onHourChange('horaFin', $event.value)">
-        <mat-option *ngFor="let hour of hours" [value]="hour">
-          {{ formatNumber(hour) }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Minutos</mat-label>
-      <mat-select
-        [value]="getMinuteFromTime(group.get('horaFin')?.value)"
-        (selectionChange)="onMinuteChange('horaFin', $event.value)">
-        <mat-option *ngFor="let minute of minutes" [value]="minute">
-          {{ formatNumber(minute) }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-  </div>
-  <mat-error *ngIf="group.get('horaFin')?.hasError('required')" class="hora-error">
-    La hora de finalización es requerida
-  </mat-error>
-
-  <mat-checkbox formControlName="retorno">
-    Retorno
-  </mat-checkbox>
-
-  <mat-checkbox formControlName="trasladoFallido">
-    Traslado Fallido
-  </mat-checkbox>
-
 </div>

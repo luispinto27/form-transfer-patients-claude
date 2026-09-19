@@ -1,81 +1,82 @@
-<div [formGroup]="group">
+<header class="step-head">
+  <span class="step-eyebrow"><span class="paso">Paso 7 de 8</span> Cierre clínico</span>
+  <h2 class="step-title">Conducta y entrega</h2>
+  <p class="step-sub">Describe la conducta seguida y registra los tiempos de entrega del paciente.</p>
+</header>
 
-  <header class="step-head">
-    <span class="step-eyebrow"><span class="paso">Paso 7 de 8</span> Cierre clínico</span>
-    <h2 class="step-title">Conducta y entrega</h2>
-    <p class="step-sub">Describe la conducta seguida y registra los tiempos de entrega del paciente.</p>
-  </header>
+<div [formGroup]="group" class="card card--accent">
+  <div class="card__body">
 
-  <mat-form-field appearance="outline" class="full-width">
-    <mat-label>Conducta</mat-label>
-    <textarea matInput formControlName="conducta"></textarea>
-    <mat-error *ngIf="group.get('conducta')?.hasError('required')">
-      La conducta es requerida
-    </mat-error>
-  </mat-form-field>
+    <div class="field full-width">
+      <label>Conducta <span class="required" *ngIf="group.get('conducta') | esObligatorio">*</span></label>
+      <textarea class="field-input" formControlName="conducta"></textarea>
+      <span class="field-error" *ngIf="group.get('conducta')?.invalid && group.get('conducta')?.touched">
+        La conducta es requerida
+      </span>
+    </div>
 
-  <h3>Entrega del paciente</h3>
+    <h3>Entrega del paciente</h3>
 
-  <div class="hora-container-label">
-    <label>Hora inicio espera</label>
+    <div class="hora-container-label">
+      <label>Hora inicio espera</label>
+    </div>
+    <div class="hora-selector">
+      <div class="field">
+        <label>Hora</label>
+        <select class="field-input"
+          [value]="getHourFromTime(group.get('horaInicioEspera')?.value)"
+          (change)="onHourChange('horaInicioEspera', +$any($event.target).value)">
+          <option *ngFor="let hour of hours" [value]="hour">{{ formatNumber(hour) }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Minutos</label>
+        <select class="field-input"
+          [value]="getMinuteFromTime(group.get('horaInicioEspera')?.value)"
+          (change)="onMinuteChange('horaInicioEspera', +$any($event.target).value)">
+          <option *ngFor="let minute of minutes" [value]="minute">{{ formatNumber(minute) }}</option>
+        </select>
+      </div>
+    </div>
+    <span class="field-error hora-error" *ngIf="group.get('horaInicioEspera')?.invalid && group.get('horaInicioEspera')?.touched">
+      La hora de inicio es requerida
+    </span>
+
+    <div class="hora-container-label">
+      <label>Hora fin espera</label>
+    </div>
+    <div class="hora-selector">
+      <div class="field">
+        <label>Hora</label>
+        <select class="field-input"
+          [value]="getHourFromTime(group.get('horaFinEspera')?.value)"
+          (change)="onHourChange('horaFinEspera', +$any($event.target).value)">
+          <option *ngFor="let hour of hours" [value]="hour">{{ formatNumber(hour) }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Minutos</label>
+        <select class="field-input"
+          [value]="getMinuteFromTime(group.get('horaFinEspera')?.value)"
+          (change)="onMinuteChange('horaFinEspera', +$any($event.target).value)">
+          <option *ngFor="let minute of minutes" [value]="minute">{{ formatNumber(minute) }}</option>
+        </select>
+      </div>
+    </div>
+    <span class="field-error hora-error" *ngIf="group.get('horaFinEspera')?.invalid && group.get('horaFinEspera')?.touched">
+      La hora de finalización es requerida
+    </span>
+    <!-- No `touched` guard: the selects never blur, and the error can only come
+         from a time the user just picked, so it is shown as soon as it exists. -->
+    <span class="field-error hora-error" *ngIf="group.errors?.['rangoHorarioInvalido']">
+      La hora de fin de espera no puede ser anterior a la hora de inicio de espera
+    </span>
+
+    <label class="checkbox">
+      <input type="checkbox" class="checkbox-input" formControlName="estadoEntrega">
+      <span class="checkbox-box"></span>
+      <span class="checkbox-label">Estado del paciente al momento de la entrega</span>
+    </label>
+
   </div>
-  <div class="hora-selector">
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Hora</mat-label>
-      <mat-select
-        [value]="getHourFromTime(group.get('horaInicioEspera')?.value)"
-        (selectionChange)="onHourChange('horaInicioEspera', $event.value)">
-        <mat-option *ngFor="let hour of hours" [value]="hour">
-          {{ formatNumber(hour) }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Minutos</mat-label>
-      <mat-select
-        [value]="getMinuteFromTime(group.get('horaInicioEspera')?.value)"
-        (selectionChange)="onMinuteChange('horaInicioEspera', $event.value)">
-        <mat-option *ngFor="let minute of minutes" [value]="minute">
-          {{ formatNumber(minute) }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-  </div>
-  <mat-error *ngIf="group.get('horaInicioEspera')?.hasError('required')" class="hora-error">
-    La hora de inicio es requerida
-  </mat-error>
-
-  <div class="hora-container-label">
-    <label>Hora fin espera</label>
-  </div>
-  <div class="hora-selector">
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Hora</mat-label>
-      <mat-select
-        [value]="getHourFromTime(group.get('horaFinEspera')?.value)"
-        (selectionChange)="onHourChange('horaFinEspera', $event.value)">
-        <mat-option *ngFor="let hour of hours" [value]="hour">
-          {{ formatNumber(hour) }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" class="half-width">
-      <mat-label>Minutos</mat-label>
-      <mat-select
-        [value]="getMinuteFromTime(group.get('horaFinEspera')?.value)"
-        (selectionChange)="onMinuteChange('horaFinEspera', $event.value)">
-        <mat-option *ngFor="let minute of minutes" [value]="minute">
-          {{ formatNumber(minute) }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-  </div>
-  <mat-error *ngIf="group.get('horaFinEspera')?.hasError('required')" class="hora-error">
-    La hora de finalización es requerida
-  </mat-error>
-
-  <mat-checkbox formControlName="estadoEntrega">
-    Estado del paciente al momento de la entrega
-  </mat-checkbox>
-
 </div>

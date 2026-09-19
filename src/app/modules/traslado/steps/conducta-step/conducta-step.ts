@@ -1,22 +1,15 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { EsObligatorio } from '../../../../shared/pipes/es-obligatorio';
 
 @Component({
   selector: 'app-conducta-step',
   standalone: true,
   imports: [
+    EsObligatorio,
     CommonModule,
-    ReactiveFormsModule,
-    MatCheckboxModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule
+    ReactiveFormsModule
   ],
   templateUrl: './conducta-step.html',
   styleUrls: ['./conducta-step.css']
