@@ -86,7 +86,8 @@
 
     </div>
 
-    <div class="action-bar">
+    <!-- Traslado ya registrado: no hay nada que navegar ni que enviar. -->
+    <div class="action-bar" *ngIf="!bloqueado">
       <button type="button" class="btn btn--outline btn--lg" [disabled]="currentIndex === 0" (click)="previousStep()">
         <app-icon name="arrowLeft" [size]="18"></app-icon>
         Atrás

@@ -21,6 +21,13 @@ build/
 *.swo
 *~
 
+# Skills de agentes instaladas por plugins (herramientas locales, no de la app).
+# .claude/skills/ son enlaces simbólicos a .agents/: versionarlos los dejaría
+# roto en cualquier otra máquina.
+.agents/
+.claude/skills/
+skills-lock.json
+
 # OS
 .DS_Store
 Thumbs.db

@@ -1,0 +1,136 @@
+rules_version = '2';
+
+// ===============================================================
+// Modelo de datos asumido
+// ===============================================================
+//
+// Bitácora de traslados ya enviados al servicio PHP externo. Existe para dos
+// cosas: dejar traza auditable de qué se envió y cuándo, y bloquear un segundo
+// envío del mismo número de autorización.
+//
+// Colección: traslados_index
+// ID de documento: el número de autorización
+// Campos:
+//   - autorizacion: string (requerido, 1..64, igual al ID del documento)
+//   - registradoEn: timestamp (requerido, debe ser serverTimestamp())
+// Sin datos personales: es lo único que el navegador puede leer.
+//
+// Colección: traslados
+// ID de documento: el número de autorización
+// Campos:
+//   - autorizacion: string (requerido, 1..64, igual al ID del documento)
+//   - registradoEn: timestamp (requerido, debe ser serverTimestamp())
+//   - payload: map (requerido, solo la clave 'datos')
+//       - datos: map con las secciones del formulario
+// Contiene datos clínicos sensibles. El navegador puede escribirlo pero NUNCA
+// leerlo; se consulta desde la consola de Firebase, que opera como
+// administrador y no pasa por estas reglas.
+//
+// Ambos documentos son inmutables: se crean una vez y no se actualizan ni se
+// borran desde la aplicación.
+//
+// ===============================================================
+// Decisiones deliberadas, y por qué
+// ===============================================================
+//
+// 1. ACCESO SIN AUTENTICACIÓN. La aplicación no tiene login: es un formulario
+//    que el personal abre desde un enlace del sistema de despacho. Fue una
+//    decisión explícita del responsable del proyecto. No hay request.auth que
+//    comprobar, así que la seguridad recae por completo en la validación de
+//    esquema de abajo y en la separación de las dos colecciones.
+//
+// 2. `get` EN LUGAR DE `read` en traslados_index. La guía general prefiere
+//    `read`, pero aquí la diferencia es el punto central del diseño: `read`
+//    incluye `list`, y `list` permitiría descargar el listado completo de
+//    autorizaciones registradas. Con `get`, solo se puede preguntar por un
+//    número que ya se conoce.
+//
+// 3. RIESGO ACEPTADO. Cualquiera con el config del navegador puede crear
+//    registros basura con números de autorización inventados, y eso bloquearía
+//    esos traslados. No se puede cerrar sin autenticación o App Check, que
+//    quedaron fuera del alcance. La validación de abajo lo acota a documentos
+//    pequeños y bien formados, no lo elimina.
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Funciones auxiliares
+    // ===============================================================
+
+    // El número de autorización: string acotado, para que no se cuele un
+    // campo de 1 MiB por esta vía.
+    function esAutorizacion(valor) {
+      return valor is string && valor.size() > 0 && valor.size() <= 64;
+    }
+
+    // Obliga a que la fecha venga de serverTimestamp(): en las reglas, un
+    // serverTimestamp() se evalúa igual a request.time. Así el cliente no
+    // puede fechar un registro en el pasado ni en el futuro.
+    function esMarcaDeServidor(valor) {
+      return valor is timestamp && valor == request.time;
+    }
+
+    // Las secciones del formulario. Si se añade una sección nueva al DTO,
+    // hay que añadirla aquí: si no, la escritura de la bitácora será
+    // rechazada (falla ruidosa, preferible a guardar algo inesperado).
+    function sonSeccionesConocidas(datos) {
+      return datos is map && datos.keys().hasOnly([
+        'traslado', 'paciente', 'antecedentes', 'signos',
+        'examen', 'gastos', 'conducta', 'firmas'
+      ]);
+    }
+
+    // ===============================================================
+    // Validadores de dominio (se usan en create; no hay update)
+    // ===============================================================
+
+    function esIndiceValido(data, autorizacion) {
+      return data.keys().hasOnly(['autorizacion', 'registradoEn'])
+          && data.keys().hasAll(['autorizacion', 'registradoEn'])
+          && esAutorizacion(data.autorizacion)
+          && data.autorizacion == autorizacion
+          && esMarcaDeServidor(data.registradoEn);
+    }
+
+    function esRegistroValido(data, autorizacion) {
+      return data.keys().hasOnly(['autorizacion', 'registradoEn', 'payload'])
+          && data.keys().hasAll(['autorizacion', 'registradoEn', 'payload'])
+          && esAutorizacion(data.autorizacion)
+          && data.autorizacion == autorizacion
+          && esMarcaDeServidor(data.registradoEn)
+          && data.payload is map
+          && data.payload.keys().hasOnly(['datos'])
+          && data.payload.keys().hasAll(['datos'])
+          && sonSeccionesConocidas(data.payload.datos);
+    }
+
+    // ===============================================================
+    // Reglas
+    // ===============================================================
+
+    // Índice de bloqueo. Sin datos personales, legible documento a documento.
+    match /traslados_index/{autorizacion} {
+      allow get: if true;
+      allow create: if esIndiceValido(request.resource.data, autorizacion);
+      allow list, update, delete: if false;
+    }
+
+    // El registro clínico completo. Solo entra, nunca sale por la web.
+    //
+    // `create` sin `update` es el candado contra duplicados: Firestore rechaza
+    // del lado del servidor un create sobre un documento que ya existe, así
+    // que el bloqueo no depende de que el cliente haya consultado antes.
+    match /traslados/{autorizacion} {
+      allow create: if esRegistroValido(request.resource.data, autorizacion);
+      allow read, update, delete: if false;
+    }
+
+    // Todo lo demás, denegado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
