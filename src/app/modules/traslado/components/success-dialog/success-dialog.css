@@ -1,0 +1,184 @@
+/* Comparte anatomía con traslado-bloqueado-dialog.css a propósito: banda de
+   estado arriba, guía abajo. Lo que cambia entre los dos diálogos es el color
+   de la banda y la palabra del sello. */
+.envio {
+  width: min(520px, 92vw);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+}
+
+/* ============================================================
+   La banda: en qué punto está el envío
+   ============================================================ */
+
+/* Estado por defecto (generando). Cada estado redefine el color de la banda y
+   los dos tonos suaves que se apoyan en ella. */
+.envio__registro {
+  --envio-suave: var(--navy-300);
+  --envio-eyebrow: var(--orange-400);
+  background: var(--navy-800);
+  color: var(--white);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+}
+
+.envio--enviado .envio__registro {
+  --envio-suave: rgba(255, 255, 255, .82);
+  --envio-eyebrow: rgba(255, 255, 255, .82);
+  background: var(--success-700);
+}
+
+.envio--fallido .envio__registro {
+  --envio-suave: rgba(255, 255, 255, .85);
+  --envio-eyebrow: rgba(255, 255, 255, .85);
+  background: var(--danger-500);
+}
+
+.envio__encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.envio__eyebrow {
+  margin: 0 0 var(--space-2);
+  font: var(--type-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--envio-eyebrow);
+}
+
+.envio__titulo {
+  margin: 0;
+  font: var(--type-h2);
+  color: var(--white);
+  text-wrap: balance;
+}
+
+/* El sello, hermano del de traslado-bloqueado-dialog. Solo aparece cuando hay
+   algo que sellar: mientras genera no, y si falló tampoco. */
+.envio__sello {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid rgba(255, 255, 255, .38);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-caption);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .82);
+  white-space: nowrap;
+  transform: rotate(-4deg);
+  animation: sellar var(--dur-base) var(--ease-standard) both;
+}
+
+@keyframes sellar {
+  from { opacity: 0; transform: rotate(-13deg) scale(1.28); }
+  to   { opacity: 1; transform: rotate(-4deg) scale(1); }
+}
+
+.envio__spinner {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  border-width: 3px;
+}
+
+.envio__etiqueta {
+  margin: var(--space-6) 0 var(--space-1);
+  font: var(--type-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--envio-suave);
+}
+
+.envio__numero {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: clamp(30px, 8.5vw, var(--text-display-2));
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  color: var(--white);
+  word-break: break-all;
+}
+
+.envio__nota {
+  margin: var(--space-2) 0 0;
+  font: var(--type-body);
+  color: var(--envio-suave);
+}
+
+/* ============================================================
+   La guía: qué pasó y qué sigue
+   ============================================================ */
+
+.envio__guia {
+  background: var(--surface-card);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.envio__guia p {
+  margin: 0;
+  font: var(--type-body);
+  color: var(--text-body);
+}
+
+.envio__siguiente { color: var(--text-muted); }
+
+/* La respuesta literal del servicio externo. Es diagnóstico: se conserva para
+   quien tenga que reportarlo, pero no compite con la explicación. */
+.envio__detalle {
+  font: var(--type-caption);
+  color: var(--text-muted);
+  background: var(--surface-page);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+/* El envío sí ocurrió; esto es una nota al margen, no un error. */
+.envio__advertencia {
+  background: var(--orange-100);
+  color: var(--orange-700);
+  border-left: 3px solid var(--orange-500);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font: var(--type-body);
+  line-height: 1.45;
+}
+
+.envio__acciones {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-1);
+}
+
+.envio__boton { min-width: 140px; }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 420px) {
+  .envio__registro { padding: var(--space-5) var(--space-4) var(--space-4); }
+  .envio__guia { padding: var(--space-4); }
+  .envio__sello { font-size: 11px; padding: 6px var(--space-2); }
+  .envio__acciones { justify-content: stretch; }
+  .envio__boton { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .envio__sello { animation: none; }
+}

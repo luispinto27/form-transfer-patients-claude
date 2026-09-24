@@ -1,0 +1,127 @@
+/* El panel compartido trae overflow visible, así que la banda se recorta aquí. */
+.bloqueo {
+  width: min(520px, 92vw);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+}
+
+/* ============================================================
+   La banda: qué traslado es
+   ============================================================ */
+
+.bloqueo__registro {
+  background: var(--navy-900);
+  color: var(--white);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+}
+
+.bloqueo__encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.bloqueo__eyebrow {
+  margin: 0 0 var(--space-2);
+  font: var(--type-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--orange-400);
+}
+
+.bloqueo__titulo {
+  margin: 0;
+  font: var(--type-h2);
+  color: var(--white);
+  text-wrap: balance;
+}
+
+/* El sello: la única pieza decorativa, y el doble filete que lo hace sello. */
+.bloqueo__sello {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid rgba(255, 255, 255, .34);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-caption);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .72);
+  white-space: nowrap;
+  transform: rotate(-4deg);
+  animation: sellar var(--dur-base) var(--ease-standard) both;
+}
+
+/* Baja como un sello sobre el papel. Un solo momento, y corto. */
+@keyframes sellar {
+  from { opacity: 0; transform: rotate(-13deg) scale(1.28); }
+  to   { opacity: 1; transform: rotate(-4deg) scale(1); }
+}
+
+.bloqueo__etiqueta {
+  margin: var(--space-6) 0 var(--space-1);
+  font: var(--type-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--navy-300);
+}
+
+/* El dato que el operador necesitaría para reportarlo. */
+.bloqueo__numero {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: clamp(30px, 8.5vw, var(--text-display-2));
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  color: var(--white);
+  word-break: break-all;
+}
+
+.bloqueo__fecha {
+  margin: var(--space-2) 0 0;
+  font: var(--type-body);
+  color: var(--navy-300);
+}
+
+/* ============================================================
+   La guía: qué hacer
+   ============================================================ */
+
+.bloqueo__guia {
+  background: var(--surface-card);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.bloqueo__guia p {
+  margin: 0;
+  font: var(--type-body);
+  color: var(--text-body);
+}
+
+.bloqueo__reporte { color: var(--text-muted); }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 420px) {
+  .bloqueo__registro { padding: var(--space-5) var(--space-4) var(--space-4); }
+  .bloqueo__guia { padding: var(--space-4); }
+  .bloqueo__sello { font-size: 11px; padding: 6px var(--space-2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bloqueo__sello { animation: none; }
+}

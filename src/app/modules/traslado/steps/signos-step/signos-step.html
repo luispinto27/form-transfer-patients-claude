@@ -27,17 +27,17 @@
         <div class="field">
           <label>Hora</label>
           <select class="field-input"
-            [value]="getHourFromTime(grupo.get('hora')?.value)"
             (change)="onHourChange(grupo, +$any($event.target).value)">
-            <option *ngFor="let hour of hours" [value]="hour">{{ formatNumber(hour) }}</option>
+            <option *ngFor="let hour of hours" [value]="hour"
+                    [selected]="hour === getHourFromTime(grupo.get('hora')?.value)">{{ formatNumber(hour) }}</option>
           </select>
         </div>
         <div class="field">
           <label>Minutos</label>
           <select class="field-input"
-            [value]="getMinuteFromTime(grupo.get('hora')?.value)"
             (change)="onMinuteChange(grupo, +$any($event.target).value)">
-            <option *ngFor="let minute of minutes" [value]="minute">{{ formatNumber(minute) }}</option>
+            <option *ngFor="let minute of minutes" [value]="minute"
+                    [selected]="minute === getMinuteFromTime(grupo.get('hora')?.value)">{{ formatNumber(minute) }}</option>
           </select>
         </div>
         <span class="field-error" *ngIf="grupo.get('hora')?.invalid && grupo.get('hora')?.touched">

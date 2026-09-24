@@ -1,0 +1,33 @@
+<div class="bloqueo">
+
+  <header class="bloqueo__registro">
+    <div class="bloqueo__encabezado">
+      <div>
+        <p class="bloqueo__eyebrow">Historia clínica</p>
+        <h2 class="bloqueo__titulo">Este traslado ya fue diligenciado</h2>
+      </div>
+      <span class="bloqueo__sello" aria-hidden="true">Diligenciado</span>
+    </div>
+
+    <p class="bloqueo__etiqueta">Número de autorización</p>
+    <p class="bloqueo__numero">{{ data.autorizacion }}</p>
+
+    <p class="bloqueo__fecha" *ngIf="data.registradoEn; else sinFecha">
+      Registrado el {{ data.registradoEn | date: "dd/MM/yyyy 'a las' HH:mm" }}
+    </p>
+    <ng-template #sinFecha>
+      <p class="bloqueo__fecha">Fecha de registro no disponible</p>
+    </ng-template>
+  </header>
+
+  <div class="bloqueo__guia">
+    <p>
+      El PDF se generó y la información se envió al sistema en esa fecha. No hace
+      falta hacer nada más: puedes cerrar esta ventana.
+    </p>
+    <p class="bloqueo__reporte">
+      Si crees que se trata de un error, repórtalo al área administrativa.
+    </p>
+  </div>
+
+</div>
