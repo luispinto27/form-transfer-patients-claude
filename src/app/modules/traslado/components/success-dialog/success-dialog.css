@@ -1,8 +1,11 @@
 /* Comparte anatomía con traslado-bloqueado-dialog.css a propósito: banda de
    estado arriba, guía abajo. Lo que cambia entre los dos diálogos es el color
    de la banda y la palabra del sello. */
+/* El ancho lo fija el panel (dialog.open: 520px, máx. 92vw). Declararlo también
+   aquí hacía que, al aparecer el scroll vertical en móvil, el contenido quedara
+   más ancho que el espacio disponible y el diálogo se viera corrido. */
 .envio {
-  width: min(520px, 92vw);
+  width: 100%;
   border-radius: var(--radius-card);
   overflow: hidden;
   box-sizing: border-box;
@@ -41,6 +44,10 @@
   justify-content: space-between;
   gap: var(--space-4);
 }
+
+/* Sin min-width:0 un ítem flex no encoge por debajo de su contenido, y el
+   título empujaría al sello fuera de la tarjeta en pantallas estrechas. */
+.envio__textos { min-width: 0; }
 
 .envio__eyebrow {
   margin: 0 0 var(--space-2);

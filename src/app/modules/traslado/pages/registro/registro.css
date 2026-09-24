@@ -190,6 +190,12 @@
     position: sticky;
     bottom: 0;
     z-index: 5;
+    /* `width: auto` es imprescindible para sangrar a los dos lados: con un
+       width explícito la ecuación margen+ancho+margen queda sobre-determinada,
+       el navegador descarta el margen derecho y la barra se desplaza a la
+       izquierda dejando hueco a la derecha. Con auto, el ancho usado pasa a ser
+       el del contenedor más los dos márgenes, justo hasta el borde de padding. */
+    width: auto;
     margin: var(--space-2) calc(-1 * var(--gutter)) 0;
     padding: var(--space-3) var(--gutter);
     background: var(--surface-page);
@@ -205,5 +211,15 @@
   .app-header__title { font-size: 12px; }
   .app-header__actions { gap: var(--space-2); }
   .main { padding: var(--space-4) var(--space-4) 0; }
+  /* Mismo sangrado a dos lados que arriba, ajustado al padding de .main en este
+     corte; `width: auto` se hereda de la regla de 900px. */
   .action-bar { margin: var(--space-2) calc(-1 * var(--space-4)) 0; padding: var(--space-3) var(--space-4); }
+
+  /* En un teléfono no caben "Atrás" (~127px) más la base de 200px que pide el
+     botón siguiente: sumaban más que el ancho disponible y la fila se partía en
+     dos, dejando "Atrás" suelto y estrecho. Con base automática los dos caben
+     en una línea y se reparten el sobrante, con más peso para la acción
+     principal. */
+  .action-bar > .btn { flex: 1 1 auto; min-width: 0; padding: 0 var(--space-4); }
+  .action-bar__next { flex: 2 1 auto; }
 }

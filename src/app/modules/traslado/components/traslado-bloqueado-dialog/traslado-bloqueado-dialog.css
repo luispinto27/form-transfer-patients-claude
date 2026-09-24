@@ -1,6 +1,9 @@
-/* El panel compartido trae overflow visible, así que la banda se recorta aquí. */
+/* El panel compartido trae overflow visible, así que la banda se recorta aquí.
+   El ancho lo fija el panel (dialog.open: 520px, máx. 92vw): si el contenido
+   lo volviera a declarar, al aparecer el scroll vertical en móvil quedaría más
+   ancho que el espacio disponible y el diálogo se vería corrido. */
 .bloqueo {
-  width: min(520px, 92vw);
+  width: 100%;
   border-radius: var(--radius-card);
   overflow: hidden;
   box-sizing: border-box;
@@ -23,6 +26,11 @@
   justify-content: space-between;
   gap: var(--space-4);
 }
+
+/* Sin min-width:0 un ítem flex no encoge por debajo de su contenido, y el
+   título acabaría empujando al sello fuera de la tarjeta en pantallas
+   estrechas. */
+.bloqueo__textos { min-width: 0; }
 
 .bloqueo__eyebrow {
   margin: 0 0 var(--space-2);
