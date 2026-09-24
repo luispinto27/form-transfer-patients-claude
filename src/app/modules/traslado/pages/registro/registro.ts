@@ -1,10 +1,15 @@
-import { Component, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, ViewChild, ElementRef, ChangeDetectorRef, PLATFORM_ID, inject } from '@angular/core';
 import { AbstractControl, AbstractControlOptions, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { switchMap, timeout } from 'rxjs';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { catchError, map, of, switchMap, timeout } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { ServicioService, ServicioResponse } from '../../../../services/servicio.service';
 import { PdfService, GeneratePdfResponse } from '../../../../services/generar-pdf';
+import {
+  TrasladoRegistradoService,
+  RegistroTrasladoExistente,
+  BitacoraError
+} from '../../../../services/traslado-registrado';
 import { TrasladoDto } from '../../../../models/traslado.dto';
 import { FIELD_LABELS, GROUP_ERROR_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
 import { rangoHorario } from '../../../../shared/validators/rango-horario';
@@ -23,6 +28,7 @@ import { ConductaStep } from "../../steps/conducta-step/conducta-step";
 import { FirmasStep } from '../../steps/firmas-step/firmas-step';
 import { ValidationErrorDialog } from '../../components/validation-error-dialog/validation-error-dialog';
 import { SuccessDialog } from '../../components/success-dialog/success-dialog';
+import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dialog/traslado-bloqueado-dialog';
 
 @Component({
   selector: 'app-registro',
@@ -68,13 +74,23 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
     searchLocked = false;
     searchError: string | null = null;
 
+    /**
+     * Este traslado ya fue enviado al servicio externo y no se puede volver a
+     * diligenciar. El formulario queda deshabilitado y la barra de acciones
+     * oculta; la salida es abrir el enlace de otro traslado.
+     */
+    bloqueado = false;
+
+    private readonly esNavegador = isPlatformBrowser(inject(PLATFORM_ID));
+
     constructor(
       private readonly fb: FormBuilder,
       private readonly servicioService: ServicioService,
       private readonly pdfService: PdfService,
       private readonly dialog: MatDialog,
       private readonly route: ActivatedRoute,
-      private readonly cdr: ChangeDetectorRef
+      private readonly cdr: ChangeDetectorRef,
+      private readonly trasladoRegistrado: TrasladoRegistradoService
     ) {
 
       const today = new Date().toISOString().split('T')[0];
@@ -422,6 +438,12 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
     }
 
     finalizar(): void {
+      // Cinturón de seguridad: la barra de acciones se oculta al bloquear, pero
+      // este método es público y no debe poder enviar un traslado ya registrado.
+      if (this.bloqueado) {
+        return;
+      }
+
       this.form.markAllAsTouched();
 
       const trasladoFallido = this.form.get('traslado.trasladoFallido')?.value || false;
@@ -452,15 +474,32 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       });
 
       let pdfGenerado: GeneratePdfResponse;
+      let payloadEnviado: Record<string, unknown>;
+      const autorizacion = dto.traslado.autorizacionNumero;
 
       this.pdfService.generatePdf(dto).pipe(
         switchMap(pdf => {
           pdfGenerado = pdf;
-          const payload = { ...this.construirPayload(dto), pdfHistoria: pdf.fileBase64 };
-          return this.servicioService.guardarTraslado(payload);
+          payloadEnviado = { ...this.construirPayload(dto), pdfHistoria: pdf.fileBase64 };
+          return this.servicioService.guardarTraslado(payloadEnviado);
+        }),
+        // La bitácora se escribe DESPUÉS de que el servicio externo confirma, no
+        // antes: reservar la autorización y que el envío fallara dejaría ese
+        // traslado bloqueado para siempre.
+        switchMap(guardar => {
+          if (!guardar?.ok) {
+            return of({ guardar, advertencia: null as string | null });
+          }
+          return this.trasladoRegistrado.registrar(autorizacion, payloadEnviado).pipe(
+            map(() => ({ guardar, advertencia: null as string | null })),
+            catchError((err: unknown) => {
+              console.error('No se pudo registrar el traslado en la bitácora', err);
+              return of({ guardar, advertencia: this.mensajeBitacora(err) });
+            })
+          );
         })
       ).subscribe({
-        next: (guardar) => {
+        next: ({ guardar, advertencia }) => {
           if (!guardar?.ok) {
             dialogRef.componentInstance.updateData({
               loading: false,
@@ -472,10 +511,14 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
 
           this.descargarPdf(pdfGenerado);
 
+          // El traslado sí quedó guardado en el servicio externo, así que esto
+          // es un éxito aunque la bitácora haya fallado. Mostrarlo como error
+          // llevaría al operador a reintentar y duplicar allá.
           dialogRef.componentInstance.updateData({
             loading: false,
             error: false,
-            message: guardar.mensaje || 'Información almacenada correctamente.'
+            message: guardar.mensaje || 'Información almacenada correctamente.',
+            warning: advertencia ?? undefined
           });
         },
         error: (err) => {
@@ -487,6 +530,16 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
           });
         }
       });
+    }
+
+    /** Qué decirle al operador cuando la bitácora rechazó la escritura. */
+    private mensajeBitacora(err: unknown): string {
+      if (err instanceof BitacoraError && err.motivo === 'duplicado') {
+        return 'Atención: este traslado ya había sido registrado previamente. '
+          + 'Repórtelo al área administrativa para evitar un cobro duplicado.';
+      }
+      return 'Atención: el traslado se envió correctamente, pero no quedó registrado '
+        + 'en la bitácora de control. Repórtelo al área administrativa.';
     }
 
     /**
@@ -753,14 +806,59 @@ import { SuccessDialog } from '../../components/success-dialog/success-dialog';
       return this.sectionLabels.reduce((n, _, i) => n + (this.sectionDone(i) ? 1 : 0), 0);
     }
 
-    /** Lee ?autorizacion=NUMERO de la URL y, si viene, dispara la consulta de una vez. */
+    /**
+     * Lee ?autorizacion=NUMERO de la URL y arranca el formulario.
+     *
+     * Antes de consultar el servicio externo comprueba la bitácora: si ese
+     * traslado ya se envió, no tiene sentido llenar el formulario con datos que
+     * no se van a poder usar.
+     *
+     * Solo en el navegador. Firestore no arranca durante SSR, y saltar también
+     * la consulta al PHP ahí evita una petición cuyo resultado se descartaba.
+     * La comprobación real ocurre al hidratar, y el candado de `create` de las
+     * reglas sigue puesto en el envío.
+     */
     private autoBuscarDesdeUrl(): void {
       const autorizacion = this.route.snapshot.queryParamMap.get('autorizacion')?.trim();
       if (!autorizacion) {
         return;
       }
       this.trasladoGroup.patchValue({ autorizacionNumero: autorizacion });
-      this.onBuscarAutorizacion(autorizacion);
+
+      if (!this.esNavegador) {
+        return;
+      }
+
+      this.trasladoRegistrado.buscarRegistro(autorizacion).subscribe({
+        next: registro => {
+          if (registro) {
+            this.bloquear(registro);
+            return;
+          }
+          this.onBuscarAutorizacion(autorizacion);
+        },
+        // Un fallo de la bitácora no debe impedir atender un traslado: se sigue
+        // adelante y el candado del servidor hace de última línea al enviar.
+        error: (err: unknown) => {
+          console.error('No se pudo consultar la bitácora de traslados', err);
+          this.onBuscarAutorizacion(autorizacion);
+        }
+      });
+    }
+
+    /** Cierra el formulario sobre un traslado ya registrado. */
+    private bloquear(registro: RegistroTrasladoExistente): void {
+      this.bloqueado = true;
+      this.form.disable({ emitEvent: false });
+      this.cdr.markForCheck();
+
+      this.dialog.open(TrasladoBloqueadoDialog, {
+        data: registro,
+        disableClose: true,
+        width: '520px',
+        maxWidth: '92vw',
+        panelClass: 'shared-dialog-panel'
+      });
     }
 
     /** Sidebar navigation: free jump, same as the design's SectionNav. */

@@ -7,6 +7,11 @@ export interface SuccessDialogData {
   loading: boolean;
   message?: string;
   error?: boolean;
+  /**
+   * El traslado se guardó, pero algo secundario falló — hoy, el registro en la
+   * bitácora de control. Sigue siendo un éxito, con una advertencia a la vista.
+   */
+  warning?: string;
 }
 
 @Component({
@@ -45,6 +50,10 @@ export interface SuccessDialogData {
           </p>
           <div class="success-details">
             <p>Tu servicio se guardó con éxito y ya puedes continuar con el siguiente paso.</p>
+          </div>
+          <div class="warning-details" *ngIf="data.warning">
+            <app-icon name="warning" [size]="18"></app-icon>
+            <p>{{ data.warning }}</p>
           </div>
           <div class="dialog-actions">
             <button type="button" class="btn btn--primary primary-button" (click)="close()">Cerrar</button>
@@ -115,6 +124,22 @@ export interface SuccessDialogData {
       box-sizing: border-box;
     }
     .success-details p { margin: 0; }
+
+    .warning-details {
+      background: var(--orange-100);
+      color: var(--orange-700);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      width: 100%;
+      font: var(--type-body);
+      text-align: left;
+      box-sizing: border-box;
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+    .warning-details p { margin: 0; line-height: 1.45; }
+    .warning-details app-icon { flex: 0 0 auto; margin-top: 2px; }
 
     .dialog-actions {
       display: flex;
