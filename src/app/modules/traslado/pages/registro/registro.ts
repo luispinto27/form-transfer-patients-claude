@@ -459,7 +459,7 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
       console.log('DTO a enviar al backend:', dto);
 
       const dialogRef = this.dialog.open(SuccessDialog, {
-        data: { loading: true },
+        data: { loading: true, autorizacion: dto.traslado.autorizacionNumero },
         disableClose: true,
         width: '520px',
         maxWidth: '92vw',
@@ -504,7 +504,8 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
             dialogRef.componentInstance.updateData({
               loading: false,
               error: true,
-              message: guardar?.mensaje || 'No se pudo guardar el traslado.'
+              // Solo el detalle técnico: el diálogo pone la explicación.
+              message: guardar?.mensaje
             });
             return;
           }
@@ -517,7 +518,7 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
           dialogRef.componentInstance.updateData({
             loading: false,
             error: false,
-            message: guardar.mensaje || 'Información almacenada correctamente.',
+            // `guardar.mensaje` es "ok" en el caso bueno: no se muestra.
             warning: advertencia ?? undefined
           });
         },
@@ -526,10 +527,29 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
           dialogRef.componentInstance.updateData({
             loading: false,
             error: true,
-            message: 'Ocurrió un error al generar el PDF o guardar el traslado. Intente de nuevo.'
+            message: this.detalleTecnico(err)
           });
         }
       });
+    }
+
+    /**
+     * Detalle para diagnosticar un envío fallido. El diálogo lo muestra como
+     * nota al pie, no como el mensaje principal, así que puede ser técnico —
+     * pero tiene que ser algo, no un objeto Error volcado a texto.
+     */
+    private detalleTecnico(err: unknown): string | undefined {
+      const e = err as { error?: { mensaje?: string }; status?: number; message?: string } | null;
+      if (e?.error?.mensaje) {
+        return e.error.mensaje;
+      }
+      if (typeof e?.status === 'number' && e.status > 0) {
+        return `Error HTTP ${e.status}`;
+      }
+      if (e?.status === 0) {
+        return 'Sin conexión con el servidor';
+      }
+      return e?.message;
     }
 
     /** Qué decirle al operador cuando la bitácora rechazó la escritura. */

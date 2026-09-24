@@ -1,0 +1,68 @@
+<div
+  class="envio"
+  [class.envio--enviado]="estado === 'enviado'"
+  [class.envio--fallido]="estado === 'fallido'">
+
+  <header class="envio__registro">
+    <div class="envio__encabezado">
+      <div>
+        <p class="envio__eyebrow">Historia clínica</p>
+        <h2 class="envio__titulo" [ngSwitch]="estado">
+          <ng-container *ngSwitchCase="'generando'">Generando el formulario</ng-container>
+          <ng-container *ngSwitchCase="'enviado'">Traslado enviado</ng-container>
+          <ng-container *ngSwitchCase="'fallido'">No se pudo enviar el traslado</ng-container>
+        </h2>
+      </div>
+
+      <span class="envio__sello" *ngIf="estado === 'enviado'" aria-hidden="true">Enviado</span>
+      <span class="spinner envio__spinner" *ngIf="estado === 'generando'" aria-hidden="true"></span>
+    </div>
+
+    <ng-container *ngIf="data.autorizacion">
+      <p class="envio__etiqueta">Número de autorización</p>
+      <p class="envio__numero">{{ data.autorizacion }}</p>
+    </ng-container>
+
+    <p class="envio__nota" *ngIf="estado === 'enviado'">
+      El PDF se descargó en este dispositivo.
+    </p>
+  </header>
+
+  <div class="envio__guia">
+    <p *ngIf="estado === 'generando'">Esto toma unos segundos. No cierres la ventana.</p>
+
+    <!-- El resultado se explica con las palabras de la aplicación. `message`
+         trae la respuesta literal del servicio externo ("ok" en el caso bueno),
+         que es un detalle de diagnóstico y solo aporta cuando algo falla. -->
+    <p *ngIf="estado === 'enviado'">La información quedó registrada en el sistema.</p>
+
+    <ng-container *ngIf="estado === 'fallido'">
+      <p>
+        El traslado no se envió. Lo que diligenciaste sigue en el formulario:
+        puedes intentarlo de nuevo sin volver a capturarlo.
+      </p>
+      <p class="envio__detalle" *ngIf="data.message">Detalle: {{ data.message }}</p>
+    </ng-container>
+
+    <div class="envio__advertencia" *ngIf="data.warning">{{ data.warning }}</div>
+
+    <p class="envio__siguiente" *ngIf="estado === 'enviado'">
+      Al cerrar, el formulario queda listo para un nuevo traslado.
+    </p>
+    <p class="envio__siguiente" *ngIf="estado === 'fallido'">
+      Si vuelve a fallar, repórtalo al área administrativa.
+    </p>
+
+    <div class="envio__acciones" *ngIf="estado !== 'generando'">
+      <button
+        type="button"
+        class="btn envio__boton"
+        [class.btn--primary]="estado === 'enviado'"
+        [class.btn--danger]="estado === 'fallido'"
+        (click)="close()">
+        Cerrar
+      </button>
+    </div>
+  </div>
+
+</div>

@@ -24,17 +24,17 @@
       <div class="field">
         <label>Hora</label>
         <select class="field-input"
-          [value]="getHourFromTime(group.get('horaInicioEspera')?.value)"
           (change)="onHourChange('horaInicioEspera', +$any($event.target).value)">
-          <option *ngFor="let hour of hours" [value]="hour">{{ formatNumber(hour) }}</option>
+          <option *ngFor="let hour of hours" [value]="hour"
+                  [selected]="hour === getHourFromTime(group.get('horaInicioEspera')?.value)">{{ formatNumber(hour) }}</option>
         </select>
       </div>
       <div class="field">
         <label>Minutos</label>
         <select class="field-input"
-          [value]="getMinuteFromTime(group.get('horaInicioEspera')?.value)"
           (change)="onMinuteChange('horaInicioEspera', +$any($event.target).value)">
-          <option *ngFor="let minute of minutes" [value]="minute">{{ formatNumber(minute) }}</option>
+          <option *ngFor="let minute of minutes" [value]="minute"
+                  [selected]="minute === getMinuteFromTime(group.get('horaInicioEspera')?.value)">{{ formatNumber(minute) }}</option>
         </select>
       </div>
     </div>
@@ -49,17 +49,17 @@
       <div class="field">
         <label>Hora</label>
         <select class="field-input"
-          [value]="getHourFromTime(group.get('horaFinEspera')?.value)"
           (change)="onHourChange('horaFinEspera', +$any($event.target).value)">
-          <option *ngFor="let hour of hours" [value]="hour">{{ formatNumber(hour) }}</option>
+          <option *ngFor="let hour of hours" [value]="hour"
+                  [selected]="hour === getHourFromTime(group.get('horaFinEspera')?.value)">{{ formatNumber(hour) }}</option>
         </select>
       </div>
       <div class="field">
         <label>Minutos</label>
         <select class="field-input"
-          [value]="getMinuteFromTime(group.get('horaFinEspera')?.value)"
           (change)="onMinuteChange('horaFinEspera', +$any($event.target).value)">
-          <option *ngFor="let minute of minutes" [value]="minute">{{ formatNumber(minute) }}</option>
+          <option *ngFor="let minute of minutes" [value]="minute"
+                  [selected]="minute === getMinuteFromTime(group.get('horaFinEspera')?.value)">{{ formatNumber(minute) }}</option>
         </select>
       </div>
     </div>
