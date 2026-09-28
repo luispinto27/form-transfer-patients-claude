@@ -56,7 +56,7 @@ export class SuccessDialog {
   }
 
   /**
-   * El resultado decide si el formulario se reinicia: `Registro` solo lo limpia
+   * El resultado decide si el formulario se cierra: `Registro` solo lo cierra
    * con 'success', para no borrar lo que el operador escribió si el envío falló.
    */
   close(): void {

@@ -59,7 +59,18 @@
         </div>
       </div>
 
-      <ng-container [ngSwitch]="currentIndex">
+      <!-- Envío exitoso ya cerrado: si el navegador no dejó cerrar la pestaña,
+           no debe quedar un formulario vacío que cualquiera pueda diligenciar. -->
+      <div class="alert alert--info" *ngIf="finalizado" role="status">
+        <span class="alert__icon"><app-icon name="checkCircle" [size]="18"></app-icon></span>
+        <div class="alert__body">
+          <div class="alert__title">Traslado enviado</div>
+          El formulario quedó cerrado. Ya puedes cerrar esta pestaña; para diligenciar otro
+          traslado, ábrelo de nuevo desde el sistema.
+        </div>
+      </div>
+
+      <ng-container *ngIf="!finalizado" [ngSwitch]="currentIndex">
         <app-traslado-step
           *ngSwitchCase="0"
           [group]="trasladoGroup"
