@@ -84,6 +84,13 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
     bloqueado = false;
 
     /**
+     * El operador cerró el diálogo de un envío exitoso. Los datos ya se
+     * borraron y el formulario está bloqueado; en lugar de los pasos se muestra
+     * el aviso de que la pestaña se puede cerrar.
+     */
+    finalizado = false;
+
+    /**
      * `regreso` cuando la ida de esta autorización ya se envió marcada como
      * «Retorno» y falta el regreso: se permite diligenciar el formulario una
      * segunda (y última) vez. El checkbox «Retorno» queda fijo en sí.
@@ -477,10 +484,11 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
         panelClass: 'shared-dialog-panel'
       });
 
-      // Always listen for dialog close so we can reset the form when user confirms
+      // Solo se cierra con 'success': si el envío falló, lo diligenciado se
+      // conserva para reintentar.
       dialogRef.afterClosed().subscribe(result => {
         if (result === 'success') {
-          this.resetForm();
+          this.cerrarTrasladoEnviado();
         }
       });
 
@@ -895,6 +903,27 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
       retorno?.setValue(true, { emitEvent: false });
       retorno?.disable({ emitEvent: false });
       this.cdr.markForCheck();
+    }
+
+    /**
+     * Cierra el formulario tras un envío exitoso.
+     *
+     * El formulario solo se abre desde el botón del sistema externo, así que no
+     * debe quedar listo para que otra persona diligencie algo en la misma
+     * pestaña. Primero se borran los datos del paciente y se bloquea; luego se
+     * intenta cerrar la pestaña. El navegador solo lo permite si la pestaña la
+     * abrió otra página: si lo ignora, queda la pantalla de «Traslado enviado».
+     */
+    private cerrarTrasladoEnviado(): void {
+      this.resetForm();
+      this.finalizado = true;
+      this.bloqueado = true;
+      this.form.disable({ emitEvent: false });
+      this.cdr.markForCheck();
+
+      if (this.esNavegador) {
+        window.close();
+      }
     }
 
     /** Cierra el formulario sobre un traslado ya registrado. */

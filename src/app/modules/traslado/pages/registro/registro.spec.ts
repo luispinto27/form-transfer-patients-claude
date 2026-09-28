@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { Registro } from './registro';
@@ -452,6 +452,8 @@ describe('Registro — bitácora de traslados', () => {
   /** Lo que el diálogo de éxito recibió en cada `updateData()`. */
   let parchesDialogo: Record<string, unknown>[];
   let dialogosAbiertos: unknown[];
+  /** Emite lo que devuelve el último diálogo abierto al cerrarse. */
+  let cierreDialogo: Subject<unknown>;
   let buscarServicio: ReturnType<typeof vi.fn>;
   let registrar: ReturnType<typeof vi.fn>;
 
@@ -485,6 +487,7 @@ describe('Registro — bitácora de traslados', () => {
 
     parchesDialogo = [];
     dialogosAbiertos = [];
+    cierreDialogo = new Subject<unknown>();
 
     buscarServicio = vi.fn(() => of({ autorizacion, entidad: 'EPS' } as never));
     registrar = vi.fn(() =>
@@ -498,7 +501,7 @@ describe('Registro — bitácora de traslados', () => {
           componentInstance: {
             updateData: (parche: Record<string, unknown>) => parchesDialogo.push(parche)
           },
-          afterClosed: () => of(null),
+          afterClosed: () => cierreDialogo.asObservable(),
           close: () => {}
         };
       }
@@ -749,6 +752,57 @@ describe('Registro — bitácora de traslados', () => {
 
       expect(registrar).not.toHaveBeenCalled();
       expect(parchesDialogo.length).toBe(0);
+    });
+  });
+
+  describe('al cerrar el diálogo de envío', () => {
+    let cerrarVentana: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      cerrarVentana = vi.spyOn(window, 'close').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      cerrarVentana.mockRestore();
+    });
+
+    it('tras un envío exitoso borra los datos, bloquea el formulario y cierra la pestaña', async () => {
+      await montar({ autorizacion: '99887766' });
+      llenarFormularioMinimo();
+      await finalizarYEsperar();
+
+      cierreDialogo.next('success');
+
+      expect(component.finalizado).toBe(true);
+      expect(component.bloqueado).toBe(true);
+      expect(component.form.disabled).toBe(true);
+      expect(component.pacienteGroup.get('nombreCompleto')?.value).toBeFalsy();
+      expect(cerrarVentana).toHaveBeenCalledTimes(1);
+    });
+
+    it('bloqueado, ya no se puede volver a enviar', async () => {
+      await montar({ autorizacion: '99887766' });
+      llenarFormularioMinimo();
+      await finalizarYEsperar();
+      cierreDialogo.next('success');
+      registrar.mockClear();
+
+      await finalizarYEsperar();
+
+      expect(registrar).not.toHaveBeenCalled();
+    });
+
+    it('si el envío falló conserva lo diligenciado y no cierra la pestaña', async () => {
+      await montar({ autorizacion: '99887766', guardarOk: false });
+      llenarFormularioMinimo();
+      await finalizarYEsperar();
+
+      cierreDialogo.next('error');
+
+      expect(component.finalizado).toBe(false);
+      expect(component.form.disabled).toBe(false);
+      expect(component.pacienteGroup.get('nombreCompleto')?.value).toBe('Juan Pérez');
+      expect(cerrarVentana).not.toHaveBeenCalled();
     });
   });
 });

@@ -95,13 +95,13 @@ describe('SuccessDialog', () => {
       expect(el.querySelector('.envio__guia')?.textContent).toContain('registrada en el sistema');
     });
 
-    it('avisa al cerrar que el formulario queda listo para otro traslado', async () => {
+    it('avisa que al cerrar se cierra la pestaña', async () => {
       const el = await montar(exito());
 
-      expect(el.textContent).toContain('nuevo traslado');
+      expect(el.textContent).toContain('esta pestaña también');
     });
 
-    it('devuelve success al cerrar, para que el formulario se reinicie', async () => {
+    it('devuelve success al cerrar, para que el formulario se cierre', async () => {
       await montar(exito());
 
       componente.close();
