@@ -20,7 +20,9 @@ import {
   getDocs,
   collection,
   setDoc,
+  updateDoc,
   deleteDoc,
+  writeBatch,
   serverTimestamp,
   Timestamp
 } from 'firebase/firestore';
@@ -39,7 +41,12 @@ const datos = {
   firmas: {}
 };
 
-const indiceValido = () => ({ autorizacion: AUTORIZACION, registradoEn: serverTimestamp() });
+const indiceValido = (retorno = false) => ({
+  autorizacion: AUTORIZACION,
+  registradoEn: serverTimestamp(),
+  retorno,
+  envios: 1
+});
 const registroValido = () => ({
   autorizacion: AUTORIZACION,
   registradoEn: serverTimestamp(),
@@ -55,13 +62,19 @@ const env = await initializeTestEnvironment({
   }
 });
 
-/** Siembra un registro saltándose las reglas, como lo haría la consola. */
-async function sembrar(autorizacion = AUTORIZACION) {
+/**
+ * Siembra un registro saltándose las reglas, como lo haría la consola.
+ *
+ * Sin `indice` siembra un índice anterior a la ida y regreso (sin `retorno` ni
+ * `envios`), que debe seguir tratándose como cerrado.
+ */
+async function sembrar(autorizacion = AUTORIZACION, indice = {}) {
   await env.withSecurityRulesDisabled(async ctx => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'traslados_index', autorizacion), {
       autorizacion,
-      registradoEn: Timestamp.now()
+      registradoEn: Timestamp.now(),
+      ...indice
     });
     await setDoc(doc(db, 'traslados', autorizacion), {
       autorizacion,
@@ -137,6 +150,90 @@ caso('NO puede borrar el registro clínico', async () => {
 });
 
 // ---------------------------------------------------------------
+// Ida y regreso: un único segundo envío, solo si la ida era de Retorno
+// ---------------------------------------------------------------
+
+/** El batch que hace la aplicación para registrar el regreso. */
+function registrarRegreso(cliente) {
+  const lote = writeBatch(cliente);
+  lote.update(doc(cliente, 'traslados_index', AUTORIZACION), {
+    envios: 2,
+    regresoEn: serverTimestamp()
+  });
+  lote.set(doc(cliente, 'traslados_regreso', AUTORIZACION), registroValido());
+  return lote.commit();
+}
+
+caso('el navegador puede registrar una ida marcada como Retorno', async () => {
+  await assertSucceeds(setDoc(doc(db(), 'traslados_index', AUTORIZACION), indiceValido(true)));
+});
+
+caso('puede registrar el regreso de una ida marcada como Retorno', async () => {
+  await sembrar(AUTORIZACION, { retorno: true, envios: 1 });
+  await assertSucceeds(registrarRegreso(db()));
+});
+
+caso('NO puede registrar un tercer envío', async () => {
+  await sembrar(AUTORIZACION, { retorno: true, envios: 1 });
+  await assertSucceeds(registrarRegreso(db()));
+  await assertFails(registrarRegreso(db()));
+});
+
+caso('NO puede registrar un regreso si la ida no era de Retorno', async () => {
+  await sembrar(AUTORIZACION, { retorno: false, envios: 1 });
+  await assertFails(registrarRegreso(db()));
+});
+
+caso('NO puede registrar un regreso sobre un índice antiguo sin retorno', async () => {
+  await sembrar();
+  await assertFails(registrarRegreso(db()));
+});
+
+caso('NO puede registrar un regreso sin ida', async () => {
+  await assertFails(registrarRegreso(db()));
+});
+
+caso('NO puede gastar el regreso sin dejar el registro clínico', async () => {
+  await sembrar(AUTORIZACION, { retorno: true, envios: 1 });
+  await assertFails(
+    updateDoc(doc(db(), 'traslados_index', AUTORIZACION), {
+      envios: 2,
+      regresoEn: serverTimestamp()
+    })
+  );
+});
+
+caso('NO puede crear el registro del regreso sin actualizar el índice', async () => {
+  await sembrar(AUTORIZACION, { retorno: true, envios: 1 });
+  await assertFails(setDoc(doc(db(), 'traslados_regreso', AUTORIZACION), registroValido()));
+});
+
+caso('NO puede activar el Retorno de una ida ya registrada', async () => {
+  await sembrar(AUTORIZACION, { retorno: false, envios: 1 });
+  const cliente = db();
+  const lote = writeBatch(cliente);
+  lote.update(doc(cliente, 'traslados_index', AUTORIZACION), {
+    retorno: true,
+    envios: 2,
+    regresoEn: serverTimestamp()
+  });
+  lote.set(doc(cliente, 'traslados_regreso', AUTORIZACION), registroValido());
+  await assertFails(lote.commit());
+});
+
+caso('NO puede crear una ida que ya cuente dos envíos', async () => {
+  await assertFails(
+    setDoc(doc(db(), 'traslados_index', AUTORIZACION), { ...indiceValido(true), envios: 2 })
+  );
+});
+
+caso('NO puede leer el registro clínico del regreso', async () => {
+  await sembrar(AUTORIZACION, { retorno: true, envios: 1 });
+  await assertSucceeds(registrarRegreso(db()));
+  await assertFails(getDoc(doc(db(), 'traslados_regreso', AUTORIZACION)));
+});
+
+// ---------------------------------------------------------------
 // Integridad del esquema
 // ---------------------------------------------------------------
 
@@ -175,7 +272,9 @@ caso('NO puede escribir una autorización desmesurada', async () => {
   await assertFails(
     setDoc(doc(db(), 'traslados_index', largo), {
       autorizacion: largo,
-      registradoEn: serverTimestamp()
+      registradoEn: serverTimestamp(),
+      retorno: false,
+      envios: 1
     })
   );
 });

@@ -85,6 +85,12 @@
       </span>
     </div>
 
+    <div class="field full-width">
+      <label>Descripción del origen</label>
+      <input class="field-input" formControlName="descripcionOrigen"
+             placeholder="Ej: Clínica Imbanaco, habitación 304, piso 4">
+    </div>
+
     <div class="hora-container-label">
       <label>Hora inicio del traslado</label>
     </div>
@@ -116,6 +122,12 @@
       <span class="field-error" *ngIf="group.get('destino')?.invalid && group.get('destino')?.touched">
         El destino es requerido
       </span>
+    </div>
+
+    <div class="field full-width">
+      <label>Descripción del destino</label>
+      <input class="field-input" formControlName="descripcionDestino"
+             placeholder="Ej: Clínica Valle del Lili, habitación 303">
     </div>
 
     <div class="hora-container-label">

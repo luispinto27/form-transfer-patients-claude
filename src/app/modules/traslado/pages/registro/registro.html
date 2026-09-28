@@ -49,6 +49,16 @@
   <main class="main" #main>
     <div class="main__inner">
 
+      <div class="alert alert--info aviso-regreso" *ngIf="tramo === 'regreso'" role="status">
+        <span class="alert__icon"><app-icon name="truck" [size]="18"></app-icon></span>
+        <div class="alert__body">
+          <div class="alert__title">Diligenciando el regreso</div>
+          La ida de esta autorización ya fue registrada y se marcó como <strong>Retorno</strong>.
+          Este formulario corresponde al trayecto de regreso; después de enviarlo, la autorización
+          quedará cerrada.
+        </div>
+      </div>
+
       <ng-container [ngSwitch]="currentIndex">
         <app-traslado-step
           *ngSwitchCase="0"

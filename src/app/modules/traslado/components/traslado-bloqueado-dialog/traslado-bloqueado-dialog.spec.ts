@@ -20,7 +20,7 @@ describe('TrasladoBloqueadoDialog', () => {
   }
 
   it('muestra el número de autorización', async () => {
-    const el = await montar({ autorizacion: '99887766', registradoEn: new Date() });
+    const el = await montar({ autorizacion: '99887766', registradoEn: new Date(), retorno: false, envios: 1 });
 
     expect(el.querySelector('.bloqueo__numero')?.textContent?.trim()).toBe('99887766');
   });
@@ -28,7 +28,9 @@ describe('TrasladoBloqueadoDialog', () => {
   it('muestra cuándo se registró', async () => {
     const el = await montar({
       autorizacion: '99887766',
-      registradoEn: new Date(2026, 2, 14, 15, 4)
+      registradoEn: new Date(2026, 2, 14, 15, 4),
+      retorno: false,
+      envios: 1
     });
 
     expect(el.querySelector('.bloqueo__fecha')?.textContent).toContain('14/03/2026');
@@ -41,7 +43,7 @@ describe('TrasladoBloqueadoDialog', () => {
    * y dejar el hueco en blanco parecería un error de la aplicación.
    */
   it('dice que la fecha no está disponible en lugar de dejar el hueco vacío', async () => {
-    const el = await montar({ autorizacion: '99887766', registradoEn: null });
+    const el = await montar({ autorizacion: '99887766', registradoEn: null, retorno: false, envios: 1 });
 
     const fecha = el.querySelector('.bloqueo__fecha');
     expect(fecha).toBeTruthy();
@@ -50,17 +52,33 @@ describe('TrasladoBloqueadoDialog', () => {
 
   /** No es un error del operador: no debe llevar el rojo del diálogo de validación. */
   it('no se presenta como un error', async () => {
-    const el = await montar({ autorizacion: '99887766', registradoEn: new Date() });
+    const el = await montar({ autorizacion: '99887766', registradoEn: new Date(), retorno: false, envios: 1 });
 
     expect(el.textContent).not.toContain('Error');
     expect(el.querySelector('.bloqueo__sello')?.textContent?.trim()).toBe('Diligenciado');
   });
 
   it('le dice al operador qué hacer', async () => {
-    const el = await montar({ autorizacion: '99887766', registradoEn: new Date() });
+    const el = await montar({ autorizacion: '99887766', registradoEn: new Date(), retorno: false, envios: 1 });
 
     const guia = el.querySelector('.bloqueo__guia')?.textContent ?? '';
     expect(guia).toContain('cerrar esta ventana');
     expect(guia).toContain('área administrativa');
+  });
+
+  it('dice que se registraron la ida y el regreso cuando ya se usaron los dos envíos', async () => {
+    const el = await montar({
+      autorizacion: '99887766', registradoEn: new Date(), retorno: true, envios: 2
+    });
+
+    expect(el.querySelector('.bloqueo__tramos')?.textContent).toContain('ida y el regreso');
+  });
+
+  it('no menciona el regreso en una ida sin Retorno', async () => {
+    const el = await montar({
+      autorizacion: '99887766', registradoEn: new Date(), retorno: false, envios: 1
+    });
+
+    expect(el.querySelector('.bloqueo__tramos')).toBeNull();
   });
 });

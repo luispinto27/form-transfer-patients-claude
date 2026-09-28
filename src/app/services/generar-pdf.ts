@@ -402,8 +402,10 @@ export class PdfService {
         ['Tipo de traslado', this.text(traslado?.tipo)],
         ['Retorno', this.bool(traslado?.retorno)],
         ['Origen', this.text(traslado?.origen)],
-        ['Hora de inicio', this.text(traslado?.horaInicio)],
+        ['Descripción del origen', this.text(traslado?.descripcionOrigen)],
         ['Destino', this.text(traslado?.destino)],
+        ['Descripción del destino', this.text(traslado?.descripcionDestino)],
+        ['Hora de inicio', this.text(traslado?.horaInicio)],
         ['Hora de finalización', this.text(traslado?.horaFin)]
       ])
     ];

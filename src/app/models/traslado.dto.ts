@@ -15,8 +15,10 @@ export interface TrasladoSectionDto {
   movil: string;
   tipo: string;
   origen: string;
+  descripcionOrigen: string;
   horaInicio: string;
   destino: string;
+  descripcionDestino: string;
   horaFin: string;
   retorno: boolean;
   trasladoFallido: boolean;

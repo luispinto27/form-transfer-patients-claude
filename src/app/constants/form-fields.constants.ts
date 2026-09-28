@@ -37,8 +37,10 @@ export const FIELD_LABELS: { [key: string]: string } = {
   'traslado.movil': 'Móvil',
   'traslado.tipo': 'Tipo de traslado',
   'traslado.origen': 'Origen del traslado',
+  'traslado.descripcionOrigen': 'Descripción del origen',
   'traslado.horaInicio': 'Hora de inicio',
   'traslado.destino': 'Destino del traslado',
+  'traslado.descripcionDestino': 'Descripción del destino',
   'traslado.horaFin': 'Hora de finalización',
   // Paciente
   'paciente.nombreCompleto': 'Nombre completo del paciente',
