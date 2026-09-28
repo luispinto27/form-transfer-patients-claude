@@ -569,12 +569,17 @@ describe('Registro — bitácora de traslados', () => {
     });
   }
 
+  /** Una ida ya registrada; por defecto sin Retorno, es decir, cerrada. */
+  function previo(extra: Partial<RegistroTrasladoExistente> = {}): RegistroTrasladoExistente {
+    return { autorizacion: '99887766', registradoEn: new Date(), retorno: false, envios: 1, ...extra };
+  }
+
   describe('al entrar con una autorización en la URL', () => {
 
     it('bloquea el formulario cuando el traslado ya fue registrado', async () => {
       await montar({
         autorizacion: '99887766',
-        registroPrevio: { autorizacion: '99887766', registradoEn: new Date('2026-03-14T15:04:05Z') }
+        registroPrevio: previo({ registradoEn: new Date('2026-03-14T15:04:05Z') })
       });
 
       expect(component.bloqueado).toBe(true);
@@ -585,7 +590,7 @@ describe('Registro — bitácora de traslados', () => {
     it('no consulta el servicio externo cuando ya está registrado', async () => {
       await montar({
         autorizacion: '99887766',
-        registroPrevio: { autorizacion: '99887766', registradoEn: new Date() }
+        registroPrevio: previo()
       });
 
       expect(buscarServicio).not.toHaveBeenCalled();
@@ -598,6 +603,39 @@ describe('Registro — bitácora de traslados', () => {
       expect(component.bloqueado).toBe(false);
       expect(component.form.disabled).toBe(false);
       expect(buscarServicio).toHaveBeenCalledWith('99887766');
+    });
+
+    it('permite diligenciar el regreso cuando la ida se marcó como Retorno', async () => {
+      await montar({ autorizacion: '99887766', registroPrevio: previo({ retorno: true }) });
+
+      expect(component.bloqueado).toBe(false);
+      expect(component.tramo).toBe('regreso');
+      expect(buscarServicio).toHaveBeenCalledWith('99887766');
+    });
+
+    it('en el regreso deja Retorno marcado y sin poder desmarcarlo', async () => {
+      await montar({ autorizacion: '99887766', registroPrevio: previo({ retorno: true }) });
+
+      const retorno = component.form.get('traslado.retorno')!;
+      expect(retorno.value).toBe(true);
+      expect(retorno.disabled).toBe(true);
+    });
+
+    it('bloquea cuando ya se registraron la ida y el regreso', async () => {
+      await montar({
+        autorizacion: '99887766',
+        registroPrevio: previo({ retorno: true, envios: 2 })
+      });
+
+      expect(component.bloqueado).toBe(true);
+      expect(dialogosAbiertos).toContain(TrasladoBloqueadoDialog);
+      expect(buscarServicio).not.toHaveBeenCalled();
+    });
+
+    it('trata la ida normal como ida', async () => {
+      await montar({ autorizacion: '99887766', registroPrevio: null });
+
+      expect(component.tramo).toBe('ida');
     });
 
     it('no bloquea si la bitácora no se puede consultar', async () => {
@@ -638,6 +676,19 @@ describe('Registro — bitácora de traslados', () => {
 
       expect(registrar).toHaveBeenCalledTimes(1);
       expect(registrar.mock.calls[0][0]).toBe('99887766');
+      expect(registrar.mock.calls[0][2]).toBe('ida');
+    });
+
+    it('registra el regreso como regreso, con Retorno en el envío', async () => {
+      await montar({ autorizacion: '99887766', registroPrevio: previo({ retorno: true }) });
+      llenarFormularioMinimo();
+
+      await finalizarYEsperar();
+
+      expect(registrar).toHaveBeenCalledTimes(1);
+      expect(registrar.mock.calls[0][2]).toBe('regreso');
+      const enviado = registrar.mock.calls[0][1] as { traslado: { retorno: boolean } };
+      expect(enviado.traslado.retorno).toBe(true);
     });
 
     it('le pasa a la bitácora el mismo objeto que se envió al servicio externo', async () => {
@@ -691,7 +742,7 @@ describe('Registro — bitácora de traslados', () => {
     it('no envía nada mientras el formulario está bloqueado', async () => {
       await montar({
         autorizacion: '99887766',
-        registroPrevio: { autorizacion: '99887766', registradoEn: new Date() }
+        registroPrevio: previo()
       });
 
       await finalizarYEsperar();

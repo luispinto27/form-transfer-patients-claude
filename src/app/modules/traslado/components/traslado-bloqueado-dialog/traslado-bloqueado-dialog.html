@@ -18,6 +18,10 @@
     <ng-template #sinFecha>
       <p class="bloqueo__fecha">Fecha de registro no disponible</p>
     </ng-template>
+
+    <p class="bloqueo__fecha bloqueo__tramos" *ngIf="data.envios >= 2">
+      Se registraron la ida y el regreso.
+    </p>
   </header>
 
   <div class="bloqueo__guia">

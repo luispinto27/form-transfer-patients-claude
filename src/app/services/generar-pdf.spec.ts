@@ -19,8 +19,10 @@ function buildDto(overrides: Partial<TrasladoDto> = {}): TrasladoDto {
       movil: 'TAB-07',
       tipo: 'Asistencial básico',
       origen: 'Clínica Central',
+      descripcionOrigen: 'Urgencias, cubículo 3',
       horaInicio: '08:15',
       destino: 'Hospital San José',
+      descripcionDestino: 'Habitación 303, piso 3',
       horaFin: '09:40',
       retorno: true,
       trasladoFallido: false

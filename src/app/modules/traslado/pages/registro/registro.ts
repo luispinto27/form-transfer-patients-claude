@@ -8,7 +8,9 @@ import { PdfService, GeneratePdfResponse } from '../../../../services/generar-pd
 import {
   TrasladoRegistradoService,
   RegistroTrasladoExistente,
-  BitacoraError
+  BitacoraError,
+  Tramo,
+  admiteRegreso
 } from '../../../../services/traslado-registrado';
 import { TrasladoDto } from '../../../../models/traslado.dto';
 import { FIELD_LABELS, GROUP_ERROR_LABELS, FORM_FIELD_VALIDATORS, SIGNOS_FIELD_VALIDATORS, GASTO_FIELD_VALIDATORS } from '../../../../constants/form-fields.constants';
@@ -81,6 +83,13 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
      */
     bloqueado = false;
 
+    /**
+     * `regreso` cuando la ida de esta autorización ya se envió marcada como
+     * «Retorno» y falta el regreso: se permite diligenciar el formulario una
+     * segunda (y última) vez. El checkbox «Retorno» queda fijo en sí.
+     */
+    tramo: Tramo = 'ida';
+
     private readonly esNavegador = isPlatformBrowser(inject(PLATFORM_ID));
 
     constructor(
@@ -105,8 +114,10 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
           movil: ['', Validators.required],
           tipo: ['', Validators.required],
           origen: ['', Validators.required],
+          descripcionOrigen: [''],
           horaInicio: ['01:00', Validators.required],
           destino: ['', Validators.required],
+          descripcionDestino: [''],
           horaFin: ['01:00', Validators.required],
           retorno: [false],
           trasladoFallido: [false]
@@ -490,7 +501,7 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
           if (!guardar?.ok) {
             return of({ guardar, advertencia: null as string | null });
           }
-          return this.trasladoRegistrado.registrar(autorizacion, payloadEnviado).pipe(
+          return this.trasladoRegistrado.registrar(autorizacion, payloadEnviado, this.tramo).pipe(
             map(() => ({ guardar, advertencia: null as string | null })),
             catchError((err: unknown) => {
               console.error('No se pudo registrar el traslado en la bitácora', err);
@@ -800,6 +811,10 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
       this.form.markAsPristine();
       this.searchLocked = false;
       this.searchError = null;
+
+      // El formulario limpio es un traslado nuevo, no el regreso del anterior.
+      this.tramo = 'ida';
+      this.form.get('traslado.retorno')?.enable({ emitEvent: false });
     }
 
     /** Control that backs each step/section, in rail order. */
@@ -851,9 +866,12 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
 
       this.trasladoRegistrado.buscarRegistro(autorizacion).subscribe({
         next: registro => {
-          if (registro) {
+          if (registro && !admiteRegreso(registro)) {
             this.bloquear(registro);
             return;
+          }
+          if (registro) {
+            this.iniciarRegreso();
           }
           this.onBuscarAutorizacion(autorizacion);
         },
@@ -864,6 +882,19 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
           this.onBuscarAutorizacion(autorizacion);
         }
       });
+    }
+
+    /**
+     * La ida ya se envió marcada como «Retorno»: este es el regreso. Se fija
+     * «Retorno» en sí para que el PDF y el envío lo reflejen, y se deshabilita
+     * para que no se pueda desmarcar (`getRawValue()` lo sigue incluyendo).
+     */
+    private iniciarRegreso(): void {
+      this.tramo = 'regreso';
+      const retorno = this.form.get('traslado.retorno');
+      retorno?.setValue(true, { emitEvent: false });
+      retorno?.disable({ emitEvent: false });
+      this.cdr.markForCheck();
     }
 
     /** Cierra el formulario sobre un traslado ya registrado. */
@@ -1034,9 +1065,12 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
         movil: servicio.datomovil || servicio.movil,
         tipo: servicio.tiposervicio || '',
         origen: servicio.origen,
+        descripcionOrigen: servicio.descripcion_origen || '',
         destino: servicio.destino,
+        descripcionDestino: servicio.descripcion_destino || '',
         horaInicio,
-        retorno: servicio.ida_vuelta?.toUpperCase() === 'SI'
+        // En el regreso «Retorno» ya viene fijado por la ida registrada.
+        ...(this.tramo === 'regreso' ? {} : { retorno: servicio.ida_vuelta?.toUpperCase() === 'SI' })
       });
 
       // Paciente fields

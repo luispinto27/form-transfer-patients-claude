@@ -8,11 +8,19 @@ rules_version = '2';
 // cosas: dejar traza auditable de qué se envió y cuándo, y bloquear un segundo
 // envío del mismo número de autorización.
 //
+// Excepción: un traslado cuya ida se envió marcada como «Retorno» es de ida y
+// regreso, y admite exactamente UN envío más (el regreso). Nunca un tercero.
+//
 // Colección: traslados_index
 // ID de documento: el número de autorización
 // Campos:
 //   - autorizacion: string (requerido, 1..64, igual al ID del documento)
 //   - registradoEn: timestamp (requerido, debe ser serverTimestamp())
+//   - retorno: bool (requerido al crear; la ida se marcó como «Retorno»)
+//   - envios: int (1 al crear; pasa a 2 al registrar el regreso)
+//   - regresoEn: timestamp (solo al registrar el regreso, serverTimestamp())
+// Los índices anteriores a la ida y regreso no tienen `retorno` ni `envios`
+// y se tratan como una ida sin retorno: cerrados.
 // Sin datos personales: es lo único que el navegador puede leer.
 //
 // Colección: traslados
@@ -26,8 +34,13 @@ rules_version = '2';
 // leerlo; se consulta desde la consola de Firebase, que opera como
 // administrador y no pasa por estas reglas.
 //
-// Ambos documentos son inmutables: se crean una vez y no se actualizan ni se
-// borran desde la aplicación.
+// Colección: traslados_regreso
+// ID de documento: el número de autorización
+// Mismos campos y misma privacidad que `traslados`, para el envío del regreso.
+//
+// Los registros son inmutables: se crean una vez y no se actualizan ni se
+// borran desde la aplicación. El índice admite una única actualización: el
+// paso de `envios` 1 → 2 al registrar el regreso.
 //
 // ===============================================================
 // Decisiones deliberadas, y por qué
@@ -88,11 +101,24 @@ service cloud.firestore {
     // ===============================================================
 
     function esIndiceValido(data, autorizacion) {
-      return data.keys().hasOnly(['autorizacion', 'registradoEn'])
-          && data.keys().hasAll(['autorizacion', 'registradoEn'])
+      return data.keys().hasOnly(['autorizacion', 'registradoEn', 'retorno', 'envios'])
+          && data.keys().hasAll(['autorizacion', 'registradoEn', 'retorno', 'envios'])
           && esAutorizacion(data.autorizacion)
           && data.autorizacion == autorizacion
-          && esMarcaDeServidor(data.registradoEn);
+          && esMarcaDeServidor(data.registradoEn)
+          && data.retorno is bool
+          && data.envios == 1;
+    }
+
+    // La única actualización permitida del índice: registrar el regreso de una
+    // ida marcada como «Retorno» que todavía no lo tiene. Solo cambian
+    // `envios` (a 2) y `regresoEn`; lo demás queda como estaba.
+    function esPasoARegreso(antes, despues) {
+      return antes.get('retorno', false) == true
+          && antes.get('envios', 1) == 1
+          && despues.diff(antes).affectedKeys().hasOnly(['envios', 'regresoEn'])
+          && despues.envios == 2
+          && esMarcaDeServidor(despues.regresoEn);
     }
 
     function esRegistroValido(data, autorizacion) {
@@ -115,7 +141,11 @@ service cloud.firestore {
     match /traslados_index/{autorizacion} {
       allow get: if true;
       allow create: if esIndiceValido(request.resource.data, autorizacion);
-      allow list, update, delete: if false;
+      // Solo en el mismo batch que crea el registro del regreso: no se puede
+      // "gastar" el regreso sin dejar constancia de qué se envió.
+      allow update: if esPasoARegreso(resource.data, request.resource.data)
+          && existsAfter(/databases/$(database)/documents/traslados_regreso/$(autorizacion));
+      allow list, delete: if false;
     }
 
     // El registro clínico completo. Solo entra, nunca sale por la web.
@@ -125,6 +155,19 @@ service cloud.firestore {
     // que el bloqueo no depende de que el cliente haya consultado antes.
     match /traslados/{autorizacion} {
       allow create: if esRegistroValido(request.resource.data, autorizacion);
+      allow read, update, delete: if false;
+    }
+
+    // El registro clínico del regreso. Igual que `traslados`, y además solo
+    // puede nacer junto con el paso del índice de 1 a 2 envíos: `get` lee el
+    // índice antes del batch y `getAfter` después. Como es `create` sin
+    // `update`, un tercer envío choca aquí y en el índice.
+    match /traslados_regreso/{autorizacion} {
+      allow create: if esRegistroValido(request.resource.data, autorizacion)
+          && get(/databases/$(database)/documents/traslados_index/$(autorizacion))
+               .data.get('envios', 1) == 1
+          && getAfter(/databases/$(database)/documents/traslados_index/$(autorizacion))
+               .data.get('envios', 1) == 2;
       allow read, update, delete: if false;
     }
 

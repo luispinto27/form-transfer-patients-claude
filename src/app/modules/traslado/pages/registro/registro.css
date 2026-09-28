@@ -144,6 +144,10 @@
   flex: 1;
 }
 
+.aviso-regreso {
+  margin-bottom: var(--space-4);
+}
+
 /* ---------- Barra de acciones ---------- */
 .action-bar {
   display: flex;

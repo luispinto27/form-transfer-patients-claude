@@ -18,7 +18,7 @@ describe('TrasladoStep', () => {
     group = fb.group({
       fecha: [''], codigo: [''], entidad: [''], autorizadoPor: [''],
       autorizacionNumero: [''], movil: [''], tipo: [''],
-      origen: [''], destino: [''],
+      origen: [''], descripcionOrigen: [''], destino: [''], descripcionDestino: [''],
       horaInicio: ['01:00'], horaFin: ['01:00'],
       retorno: [false], trasladoFallido: [false],
       ...valores

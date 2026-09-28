@@ -6,7 +6,10 @@ import { environment } from '../../environments/environment';
 export interface ServicioResponse {
   servicio_codigo: string;
   origen: string;
+  // Not every record carries these yet — the API omits them on older services.
+  descripcion_origen?: string | null;
   destino: string;
+  descripcion_destino?: string | null;
   fecha: string;
   hora: string;
   entidad: string;
