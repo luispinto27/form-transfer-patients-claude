@@ -284,6 +284,20 @@ describe('Registro', () => {
     expect(payload.traslado.trasladoFallido).toBe(true);
   });
 
+  it('prefills the crew names under their signatures from the service', () => {
+    (component as any).llenarFormularioConServicio({
+      medico: '',
+      auxiliar: ' ANA PÉREZ ',
+      conductor: 'JUAN DAVID LARRAHONDO'
+    });
+
+    expect(component.firmasGroup.getRawValue()).toMatchObject({
+      nombreMedico: '',
+      nombreAuxiliar: 'ANA PÉREZ',
+      nombreConductor: 'JUAN DAVID LARRAHONDO'
+    });
+  });
+
   it('never fabricates a signature', () => {
     setTrasladoFallido(true);
     llenarTrasladoYPaciente();
@@ -514,7 +528,7 @@ describe('Registro — bitácora de traslados', () => {
         provideHttpClient(),
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { queryParamMap: { get: () => autorizacion } } }
+          useValue: { snapshot: { queryParamMap: { get: (clave: string) => (clave === 'codigo' ? autorizacion : null) } } }
         },
         {
           provide: ServicioService,

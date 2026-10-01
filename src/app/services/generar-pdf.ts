@@ -56,10 +56,14 @@ const EXAMEN_LABELS: ReadonlyArray<[keyof ExamenSectionDto, string]> = [
   ['psiquiatrico', 'Psiquiátrico']
 ];
 
-const FIRMAS_LABELS: ReadonlyArray<[keyof FirmasSectionDto, string]> = [
-  ['medico', 'Médico'],
-  ['enfermeria', 'Enfermería'],
-  ['conductor', 'Conductor'],
+type FirmaKey = 'medico' | 'enfermeria' | 'conductor' | 'familiar' | 'entidadReceptora';
+type NombreFirmaKey = 'nombreMedico' | 'nombreAuxiliar' | 'nombreConductor';
+
+/** Signature, its caption, and the field holding the signer's name, if any. */
+const FIRMAS_LABELS: ReadonlyArray<[FirmaKey, string, NombreFirmaKey?]> = [
+  ['medico', 'Médico', 'nombreMedico'],
+  ['enfermeria', 'Enfermería / Auxiliar', 'nombreAuxiliar'],
+  ['conductor', 'Conductor', 'nombreConductor'],
   ['familiar', 'Familiar / Paciente'],
   ['entidadReceptora', 'Entidad receptora']
 ];
@@ -226,7 +230,7 @@ export class PdfService {
       FIRMAS_LABELS.map(async ([key]) => [key, await this.normalizeSignature(firmas?.[key])] as const)
     );
 
-    return Object.fromEntries(entries) as unknown as FirmasSectionDto;
+    return { ...firmas, ...Object.fromEntries(entries) } as FirmasSectionDto;
   }
 
   private async normalizeSignature(value: string | undefined): Promise<string> {
@@ -594,7 +598,9 @@ export class PdfService {
   // --- 8. Firmas -------------------------------------------------------------
 
   private firmasSection(firmas: FirmasSectionDto): Content[] {
-    const cells = FIRMAS_LABELS.map(([key, label]) => this.signatureCell(label, firmas?.[key]));
+    const cells = FIRMAS_LABELS.map(([key, label, nombreKey]) =>
+      this.signatureCell(label, firmas?.[key], nombreKey ? firmas?.[nombreKey] : undefined)
+    );
 
     // Three per row keeps each signature wide enough to stay legible; the last
     // row is padded so pdfmake always receives a rectangular table body.
@@ -622,7 +628,7 @@ export class PdfService {
    * A fixed-height row holds the signature so the rule and the caption line up
    * across the grid no matter how tall or wide each drawn signature is.
    */
-  private signatureCell(label: string, dataUrl: string | undefined): Content {
+  private signatureCell(label: string, dataUrl: string | undefined, nombre?: string): Content {
     const signature: Content = dataUrl
       ? { image: dataUrl, fit: [150, 50], alignment: 'center', margin: [0, 3, 0, 0] }
       : { text: 'Sin firma', style: 'note', alignment: 'center', margin: [0, 21, 0, 0] };
@@ -633,7 +639,15 @@ export class PdfService {
         heights: [56, 'auto'],
         body: [
           [signature],
-          [{ text: label, style: 'label', alignment: 'center', margin: [0, 4, 0, 0] }]
+          [{
+            stack: [
+              ...(nombre?.trim()
+                ? [{ text: nombre.trim(), style: 'value', bold: true, alignment: 'center' } as Content]
+                : []),
+              { text: label, style: 'label', alignment: 'center' }
+            ],
+            margin: [0, 4, 0, 0]
+          }]
         ]
       },
       layout: {

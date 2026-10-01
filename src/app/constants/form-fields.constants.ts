@@ -80,7 +80,10 @@ export const FIELD_LABELS: { [key: string]: string } = {
   'firmas.enfermeria': 'Firma de enfermería',
   'firmas.conductor': 'Firma del conductor',
   'firmas.familiar': 'Firma del familiar',
-  'firmas.entidadReceptora': 'Firma de la entidad receptora'
+  'firmas.entidadReceptora': 'Firma de la entidad receptora',
+  'firmas.nombreMedico': 'Nombre del médico',
+  'firmas.nombreAuxiliar': 'Nombre del auxiliar',
+  'firmas.nombreConductor': 'Nombre del conductor'
 };
 
 /**

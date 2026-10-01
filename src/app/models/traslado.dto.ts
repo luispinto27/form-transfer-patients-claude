@@ -97,13 +97,20 @@ export interface ConductaSectionDto {
   estadoEntrega: boolean;
 }
 
-/** Each value is an image data URL produced by `FirmaPad.obtenerFirmaBase64()`. */
+/**
+ * `medico`, `enfermeria`, `conductor`, `familiar` and `entidadReceptora` are
+ * image data URLs produced by `FirmaPad.obtenerFirmaBase64()`. The `nombre*`
+ * fields name the crew member who signs, prefilled from the service lookup.
+ */
 export interface FirmasSectionDto {
   medico: string;
   enfermeria: string;
   conductor: string;
   familiar: string;
   entidadReceptora: string;
+  nombreMedico: string;
+  nombreAuxiliar: string;
+  nombreConductor: string;
 }
 
 export interface TrasladoDto {

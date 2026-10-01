@@ -194,7 +194,10 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
           enfermeria: ['', Validators.required],
           conductor: ['', Validators.required],
           familiar: ['', Validators.required],
-          entidadReceptora: ['', Validators.required]
+          entidadReceptora: ['', Validators.required],
+          nombreMedico: [''],
+          nombreAuxiliar: [''],
+          nombreConductor: ['']
         })
     });
 
@@ -205,7 +208,7 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
       this.agregarSignoVital();
       this.agregarGasto();
 
-      // Si el formulario se abre con ?autorizacion=NUMERO en la URL (enlace
+      // Si el formulario se abre con ?codigo=NUMERO en la URL (enlace
       // directo desde el sistema de despacho), precarga el campo y dispara
       // la consulta automáticamente, sin esperar a que alguien pulse "Buscar".
       this.autoBuscarDesdeUrl();
@@ -850,7 +853,7 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
     }
 
     /**
-     * Lee ?autorizacion=NUMERO de la URL y arranca el formulario.
+     * Lee ?codigo=NUMERO de la URL y arranca el formulario.
      *
      * Antes de consultar el servicio externo comprueba la bitácora: si ese
      * traslado ya se envió, no tiene sentido llenar el formulario con datos que
@@ -862,7 +865,7 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
      * reglas sigue puesto en el envío.
      */
     private autoBuscarDesdeUrl(): void {
-      const autorizacion = this.route.snapshot.queryParamMap.get('autorizacion')?.trim();
+      const autorizacion = this.route.snapshot.queryParamMap.get('codigo')?.trim();
       if (!autorizacion) {
         return;
       }
@@ -1085,8 +1088,9 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
     private llenarFormularioConServicio(servicio: ServicioResponse): void {
       // Traslado fields
       const horaInicio = servicio.hora ? servicio.hora.substring(0, 5) : '01:00';
+      // `autorizacionNumero` keeps the code that was searched: the bitácora is
+      // keyed by it both when the form opens and when it is sent.
       this.trasladoGroup.patchValue({
-        autorizacionNumero: servicio.autorizacion,
         fecha: servicio.fecha,
         codigo: servicio.codigo || servicio.servicio_codigo || '',
         entidad: servicio.entidad,
@@ -1125,6 +1129,13 @@ import { TrasladoBloqueadoDialog } from '../../components/traslado-bloqueado-dia
       // Antecedentes - diagnostico principal
       this.antecedentesGroup.patchValue({
         dxPrincipal: servicio.diagnosticos
+      });
+
+      // Tripulación asignada: nombre bajo cada firma
+      this.firmasGroup.patchValue({
+        nombreMedico: servicio.medico?.trim() || '',
+        nombreAuxiliar: servicio.auxiliar?.trim() || '',
+        nombreConductor: servicio.conductor?.trim() || ''
       });
     }
 }

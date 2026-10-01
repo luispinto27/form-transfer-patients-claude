@@ -112,7 +112,10 @@ function buildDto(overrides: Partial<TrasladoDto> = {}): TrasladoDto {
       enfermeria: PNG_1PX,
       conductor: '',
       familiar: PNG_1PX,
-      entidadReceptora: ''
+      entidadReceptora: '',
+      nombreMedico: 'Laura Gómez',
+      nombreAuxiliar: '',
+      nombreConductor: 'Juan David Larrahondo'
     },
     ...overrides
   };
@@ -209,6 +212,14 @@ describe('PdfService', () => {
     expect(textosDelDocumento(dto)).toContain('Fallecido');
   });
 
+  it('prints the crew name under its signature', () => {
+    const textos = textosDelDocumento(buildDto());
+
+    expect(textos).toContain('Laura Gómez');
+    expect(textos).toContain('Juan David Larrahondo');
+    expect(textos).toContain('Enfermería / Auxiliar');
+  });
+
   it('prints the rows that do carry data', () => {
     const textos = textosDelDocumento(buildDto());
 
@@ -221,7 +232,10 @@ describe('PdfService', () => {
     const dto = buildDto({
       signos: [],
       gastos: [],
-      firmas: { medico: '', enfermeria: '', conductor: '', familiar: '', entidadReceptora: '' }
+      firmas: {
+        medico: '', enfermeria: '', conductor: '', familiar: '', entidadReceptora: '',
+        nombreMedico: '', nombreAuxiliar: '', nombreConductor: ''
+      }
     });
 
     const result = await firstValueFrom(service.generatePdf(dto));

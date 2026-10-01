@@ -1,7 +1,7 @@
 <header class="step-head">
   <span class="step-eyebrow"><span class="paso">Paso 8 de 8</span> Cierre</span>
   <h2 class="step-title" data-step-title>Firmas</h2>
-  <p class="step-sub">Cada responsable firma en su recuadro. Puedes dibujar en pantalla o subir una imagen.</p>
+  <p class="step-sub">Cada responsable firma en su recuadro. Puedes dibujar en pantalla o subir una imagen. Los nombres de la tripulación vienen del servicio asignado y se pueden corregir.</p>
 </header>
 
 <div [formGroup]="group" class="card card--accent">
@@ -14,6 +14,10 @@
       <span class="field-error" *ngIf="group.get('medico')?.hasError('required') && group.get('medico')?.touched">
         La firma del médico es requerida
       </span>
+      <div class="field firma-nombre">
+        <label>Nombre del médico</label>
+        <input class="field-input" formControlName="nombreMedico" placeholder="Nombre completo">
+      </div>
     </div>
 
     <div class="firma-item">
@@ -24,6 +28,10 @@
       <span class="field-error" *ngIf="group.get('enfermeria')?.hasError('required') && group.get('enfermeria')?.touched">
         La firma de enfermería es requerida
       </span>
+      <div class="field firma-nombre">
+        <label>Nombre del auxiliar</label>
+        <input class="field-input" formControlName="nombreAuxiliar" placeholder="Nombre completo">
+      </div>
     </div>
 
     <div class="firma-item">
@@ -34,6 +42,10 @@
       <span class="field-error" *ngIf="group.get('conductor')?.hasError('required') && group.get('conductor')?.touched">
         La firma del conductor es requerida
       </span>
+      <div class="field firma-nombre">
+        <label>Nombre del conductor</label>
+        <input class="field-input" formControlName="nombreConductor" placeholder="Nombre completo">
+      </div>
     </div>
 
     <div class="firma-item">
